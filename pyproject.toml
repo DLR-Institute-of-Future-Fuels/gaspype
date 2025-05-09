@@ -1,0 +1,56 @@
+[project]
+name = "gaspype"
+version = "0.0.1"
+authors = [
+  { name="Nicolas Kruse", email="nicolas.kruse@dlr.de" },
+]
+description = "Performant library for thermodynamic calculations"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+  "pyyaml>6.0.2",
+  "numpy>2.0.0",
+  "scipy>1.12.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/DLR-Institute-of-Future-Fuels/gaspype"
+Issues = "https://github.com/DLR-Institute-of-Future-Fuels/gaspype/issues"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+gaspype = ["data/*.yaml"]
+
+[project.optional-dependencies]
+dev = [
+    "flake8",
+    "mypy",
+    "pytest",
+    "pandas",
+]
+
+[tool.mypy]
+files = ["src"]
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+check_untyped_defs = true
+no_implicit_optional = true
+show_error_codes = true
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q"
+testpaths = ["tests"]
+pythonpath = ["src"]

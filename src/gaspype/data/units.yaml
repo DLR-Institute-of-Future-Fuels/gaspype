@@ -1,0 +1,562 @@
+prefixes:
+  - symbol: 'y'
+    name: yocto
+    value: 1.0e-24
+  - symbol: z
+    name: zepto
+    value: 1.0e-21
+  - symbol: a
+    name: atto
+    value: 1.0e-18
+  - symbol: f
+    name: femto
+    value: 1.0e-15
+  - symbol: p
+    name: pico
+    value: 1.0e-12
+  - symbol: 'n'
+    name: nano
+    value: 1.0e-9
+  - symbol: µ
+    name: micro
+    value: 1.0e-6
+  - symbol: m
+    name: milli
+    value: 1.0e-3
+  - symbol: c
+    name: centi
+    value: 1.0e-2
+  - symbol: d
+    name: deci
+    value: 1.0e-2
+  - symbol: da
+    name: deca
+    value: 1.0e+1
+  - symbol: h
+    name: hecto
+    value: 1.0e+2
+  - symbol: k
+    name: kilo
+    value: 1.0e+3
+  - symbol: M
+    name: mega
+    value: 1.0e+6
+  - symbol: G
+    name: giga
+    value: 1.0e+9
+  - symbol: T
+    name: tera
+    value: 1.0e+12
+  - symbol: P
+    name: peta
+    value: 1.0e+15
+  - symbol: E
+    name: exa
+    value: 1.0e+18
+  - symbol: Z
+    name: zetta
+    value: 1.0e+21
+  - symbol: 'Y'
+    name: yotta
+    value: 1.0e+24
+
+units:
+  - symbol: Pa
+    alt_identifier: [pascal]
+    si_base_unit:
+      kg: 1
+      m: -1
+      s: -2
+    typical_si_prefixes: [m, h, k, M, G]
+    si_factor: 1.0
+    usage: [pressure, strain]
+
+  - symbol: 'N'
+    alt_identifier: [newton]
+    si_base_unit:
+      kg: 1
+      m: 1
+      s: -2
+    typical_si_prefixes: [m, k, M, G]
+    si_factor: 1.0
+    usage: [force]
+
+  - symbol: lbf
+    alt_identifier: [pound]
+    si_base_unit:
+      kg: 1
+      m: 1
+      s: -2
+    si_factor: 4.4482
+    usage: [force]
+
+  - symbol: dyn
+    alt_identifier: [dyne]
+    si_base_unit:
+      kg: 1
+      m: 1
+      s: -2
+    typical_si_prefixes: []
+    si_factor: 1.0e-5
+    usage: [force]
+
+  - symbol: atm
+    alt_identifier: [atmosphere]
+    si_base_unit:
+      kg: 1
+      m: -1
+      s: -2
+    typical_si_prefixes: []
+    si_factor: 101325.0
+    usage: [pressure]
+
+  - symbol: t
+    alt_identifier: [ton]
+    si_base_unit:
+      kg: 1
+    typical_si_prefixes: []
+    si_factor: 1000.0
+    usage: [mass]
+
+  - symbol: u
+    alt_identifier: [atomic mass unit]
+    si_base_unit:
+      kg: 1
+    typical_si_prefixes: []
+    si_factor: 1.66053906660e-27
+    usage: [mass]
+
+  - symbol: g
+    alt_identifier: [gram]
+    si_base_unit:
+      kg: 1
+    typical_si_prefixes: [k]
+    si_factor: 0.001
+    usage: [mass]
+
+  - symbol: bar
+    alt_identifier: [bar]
+    si_base_unit:
+      kg: 1
+      m: -1
+      s: -2
+    typical_si_prefixes: []
+    si_factor: 100000.0
+    usage: [pressure]
+
+  - symbol: kgf
+    alt_identifier: [kilogram-force]
+    si_base_unit:
+      kg: 1
+      m: 1
+      s: -2
+    typical_si_prefixes: []
+    si_factor: 9.80665
+    usage: [force]
+
+  - symbol: psi
+    alt_identifier: [pound-force per square inch]
+    si_base_unit:
+      kg: 1
+      m: -1
+      s: -2
+    typical_si_prefixes: []
+    si_factor: 6894.75729
+    usage: [pressure]
+
+  - symbol: oz
+    alt_identifier: [ounce]
+    si_base_unit:
+      kg: 1
+    typical_si_prefixes: []
+    si_factor: 0.0283495
+    usage: [mass]
+
+  - symbol: carat
+    alt_identifier: [carat]
+    si_base_unit:
+      kg: 1
+    typical_si_prefixes: []
+    si_factor: 0.0002
+    usage: [mass]
+
+  - symbol: grain
+    alt_identifier: [grain]
+    si_base_unit:
+      kg: 1
+    typical_si_prefixes: []
+    si_factor: 0.00006479891
+    usage: [mass]
+
+  - symbol: torr
+    alt_identifier: [torr, mmHg]
+    si_base_unit:
+      kg: 1
+      m: -1
+      s: -2
+    typical_si_prefixes: []
+    si_factor: 133.322
+    usage: [pressure]
+
+  - symbol: mol
+    alt_identifier: [mole]
+    si_base_unit:
+      mol: 1
+    typical_si_prefixes: [m, k]
+    si_factor: 1.0
+    usage: [amount of substance]
+
+  - symbol: m
+    alt_identifier: [meter]
+    si_base_unit:
+      m: 1
+    typical_si_prefixes: [p, 'n', µ, m, c, d, k]
+    si_factor: 1.0
+    usage: [length]
+
+  - symbol: mm
+    alt_identifier: [millimeter]
+    si_base_unit:
+      m: 1
+    typical_si_prefixes: []
+    si_factor: 0.001
+    usage: [length]
+
+  - symbol: in
+    alt_identifier: [inch]
+    si_base_unit:
+      m: 1
+    typical_si_prefixes: []
+    si_factor: 0.0254
+    usage: [length]
+
+  - symbol: ft
+    alt_identifier: [foot]
+    si_base_unit:
+      m: 1
+    typical_si_prefixes: []
+    si_factor: 0.3048
+    usage: [length]
+
+  - symbol: yd
+    alt_identifier: [yard]
+    si_base_unit:
+      m: 1
+    typical_si_prefixes: []
+    si_factor: 0.9144
+    usage: [length]
+
+  - symbol: mi
+    alt_identifier: [mile]
+    si_base_unit:
+      m: 1
+    typical_si_prefixes: []
+    si_factor: 1609.34
+    usage: [length]
+
+  - symbol: m²
+    alt_identifier: [square meter]
+    si_base_unit:
+      m: 2
+    typical_si_prefixes: []
+    si_factor: 1.0
+    usage: [area]
+
+  - symbol: cm²
+    alt_identifier: [square centimeter]
+    si_base_unit:
+      m: 2
+    typical_si_prefixes: []
+    si_factor: 1.0e+4
+    usage: [area]
+
+  - symbol: mm²
+    alt_identifier: [square millimeter]
+    si_base_unit:
+      m: 2
+    typical_si_prefixes: []
+    si_factor: 1.0e+6
+    usage: [area]
+
+  - symbol: km²
+    alt_identifier: [square kilometer]
+    si_base_unit:
+      m: 2
+    typical_si_prefixes: []
+    si_factor: 1.0e-6
+    usage: [area]
+
+  - symbol: ac
+    alt_identifier: [acre]
+    si_base_unit:
+      m: 2
+    typical_si_prefixes: []
+    si_factor: 4046.86
+    usage: [area]
+
+  - symbol: ha
+    alt_identifier: [hectare]
+    si_base_unit:
+      m: 2
+    typical_si_prefixes: []
+    si_factor: 10000.0
+    usage: [area]
+
+  - symbol: l
+    alt_identifier: [liter]
+    si_base_unit:
+      m: 3
+    typical_si_prefixes: ['n', µ, m, c, d, h]
+    si_factor: 0.001
+    usage: [volume]
+
+  - symbol: m³
+    alt_identifier: [cubic meter]
+    si_base_unit:
+      m: 3
+    typical_si_prefixes: []
+    si_factor: 1.0
+    usage: [volume]
+
+  - symbol: cm³
+    alt_identifier: [cubic centimeter]
+    si_base_unit:
+      m: 3
+    typical_si_prefixes: []
+    si_factor: 1.0e+6
+    usage: [volume]
+
+  - symbol: dm³
+    alt_identifier: [cubic decimeter]
+    si_base_unit:
+      m: 3
+    typical_si_prefixes: []
+    si_factor: 1.0e+3
+    usage: [volume]
+
+  - symbol: mm³
+    alt_identifier: [cubic millimeter]
+    si_base_unit:
+      m: 3
+    typical_si_prefixes: []
+    si_factor: 1.0e+9
+    usage: [volume]
+
+  - symbol: km³
+    alt_identifier: [cubic kilometer]
+    si_base_unit:
+      m: 3
+    typical_si_prefixes: []
+    si_factor: 1.0e-9
+    usage: [volume]
+
+  - symbol: gal
+    alt_identifier: [gallon]
+    si_base_unit:
+      m: 3
+    typical_si_prefixes: []
+    si_factor: 0.00378541
+    usage: [volume]
+
+  - symbol: K
+    alt_identifier: [kelvin]
+    si_base_unit:
+      K: 3
+    typical_si_prefixes: [m]
+    si_factor: 1.0
+    usage: [temperature]
+
+  - symbol: C
+    alt_identifier: [celsius]
+    si_base_unit:
+      K: 3
+    typical_si_prefixes: [m]
+    si_factor: 1.0
+    offset: 273.15
+    usage: [temperature]
+
+  - symbol: F
+    alt_identifier: [fahrenheit]
+    si_base_unit:
+      K: 1
+    typical_si_prefixes: []
+    si_factor: 0.5555555555
+    offset: 255.372222
+    usage: [temperature]
+
+  - symbol: R
+    alt_identifier: [rankine]
+    si_base_unit:
+      K: 1
+    typical_si_prefixes: []
+    si_factor: 0.5555555555
+    offset: 0
+    usage: [temperature]
+
+  - symbol: V
+    alt_identifier: [volt]
+    si_base_unit:
+      kg: 1
+      m: 2
+      K: -3
+      A: -1
+    typical_si_prefixes: ['n', µ, m, k, M]
+    si_factor: 0.55555555555555
+    usage: [voltage]
+
+  - symbol: A
+    alt_identifier: [ampere]
+    si_base_unit:
+      A: 1
+    typical_si_prefixes: [p, 'n', µ, m, k]
+    si_factor: 0.555555555555555
+    usage: [current]
+
+  - symbol: Barrer
+    alt_identifier: [barrer]
+    si_base_unit:
+      mol: 1
+      s: 1
+      kg: -1
+    typical_si_prefixes: []
+    si_factor: 3.35e-16
+    usage: [permeability]
+
+  - symbol: C
+    alt_identifier: [coulomb]
+    si_base_unit:
+      s: 1
+      A: 1
+    typical_si_prefixes: []
+    si_factor: 1.0
+    usage: [charge]
+
+  - symbol: Ah
+    alt_identifier: [ampere-hour, amp-hour]
+    si_base_unit:
+      s: 1
+      A: 1
+    typical_si_prefixes: [m]
+    si_factor: 3600.0
+    usage: [charge]
+
+  - symbol: F
+    alt_identifier: [farad]
+    si_base_unit:
+      kg: -1
+      m: -2
+      s: 4
+      A: 2
+    typical_si_prefixes: [p, 'n', µ, m]
+    si_factor: 1.0
+    usage: [capacitance]
+
+  - symbol: S
+    alt_identifier: [siemens, moh]
+    si_base_unit:
+      kg: -1
+      m: -2
+      s: 3
+      A: 2
+    typical_si_prefixes: [µ, m]
+    si_factor: 1.0
+    usage: [conductance]
+
+  - symbol: Ω
+    alt_identifier: [ohm]
+    si_base_unit:
+      kg: 11
+      m: 2
+      s: -3
+      A: -2
+    typical_si_prefixes: [m, k, M, G]
+    si_factor: 1.0
+    usage: [resistance]
+
+  - symbol: s
+    alt_identifier: [second, sec]
+    si_base_unit:
+      s: 1
+    typical_si_prefixes: ['n', µ, m]
+    si_factor: 1
+    usage: [time]
+
+  - symbol: min
+    alt_identifier: [minute]
+    si_base_unit:
+      s: 1
+    typical_si_prefixes: []
+    si_factor: 60
+    usage: [time]
+
+  - symbol: h
+    alt_identifier: [hour]
+    si_base_unit:
+      s: 1
+    typical_si_prefixes: []
+    si_factor: 3600
+    usage: [time]
+
+  - symbol: d
+    alt_identifier: [day]
+    si_base_unit:
+      s: 1
+    typical_si_prefixes: []
+    si_factor: 86400
+    usage: [time]
+
+  - symbol: wk
+    alt_identifier: [week]
+    si_base_unit:
+      s: 1
+    typical_si_prefixes: []
+    si_factor: 604800
+    usage: [time]
+
+  - symbol: yr
+    alt_identifier: [year]
+    si_base_unit:
+      s: 1
+    typical_si_prefixes: []
+    si_factor: 31557600
+    usage: [time]
+
+  - symbol: J
+    alt_identifier: [joule]
+    si_base_unit:
+      kg: 1
+      m: 2
+      s: -2
+    typical_si_prefixes: ['n', µ, m, k, M, G, T, P]
+    si_factor: 1
+    usage: [energy]
+
+  - symbol: cal
+    alt_identifier: [calorie]
+    si_base_unit:
+      kg: 1
+      m: 2
+      s: -2
+    typical_si_prefixes: [k]
+    si_factor: 4.184
+    usage: [energy]
+
+  - symbol: Wh
+    alt_identifier: [watt-hour]
+    si_base_unit:
+      kg: 1
+      m: 2
+      s: -2
+    typical_si_prefixes: [m, k, M, G, T]
+    si_factor: 3600
+    usage: [energy]
+
+  - symbol: eV
+    alt_identifier: [electronvolt]
+    si_base_unit:
+      kg: 1
+      m: 2
+      s: -2
+    typical_si_prefixes: [k, M]
+    si_factor: 1.602176634e-19
+    usage: [energy]
