@@ -1,6 +1,6 @@
 [project]
 name = "gaspype"
-version = "1.0.0"
+version = "1.0.1"
 authors = [
   { name="Nicolas Kruse", email="nicolas.kruse@dlr.de" },
 ]
@@ -38,7 +38,9 @@ dev = [
     "mypy",
     "pytest",
     "pandas",
-    "types-PyYAML"
+    "cantera",
+    "types-PyYAML",
+    "scipy-stubs"
 ]
 
 [tool.mypy]
