@@ -24,7 +24,7 @@ pip install gaspype
 
 Installation with conda:
 ``` bash
-conda install gaspype
+conda install conda-forge::gaspype
 ```
 
 Installation for developers with pip:
