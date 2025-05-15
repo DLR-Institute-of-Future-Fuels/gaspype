@@ -38,12 +38,13 @@ def markdown_to_code(lines: list[str], language: str = "python") -> Generator[st
             yield f'    print(({ret_block_flag}).__repr__().strip())'
 
         elif ret_block_flag:
-            yield '    ref_str = """'
+            yield '    ref_str = r"""'
             yield from [str(line) for line in block.splitlines()]
             yield '"""'
             yield f'    print("-- Reference (({ret_block_flag})):")'
             yield '    print(ref_str.strip())'
             yield f'    assert ({ret_block_flag}).__repr__().strip() == ref_str.strip()'
+            ret_block_flag = False
 
 
 def test_readme():
