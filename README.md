@@ -27,12 +27,6 @@ Installation with conda:
 conda install conda-forge::gaspype
 ```
 
-Installation for developers with pip:
-``` bash
-git clone https://github.com/DLR-Institute-of-Future-Fuels/gaspype
-pip install -e .[dev]
-```
-
 ## Getting started
 Gaspype provides two main classes: ```fluid``` and ```elements```.
 
@@ -129,6 +123,8 @@ array([[[0.        , 0.5       , 0.5       ],
         [0.625     , 0.09375   , 0.28125   ],
         [0.71428571, 0.07142857, 0.21428571]]])
 ```
+
+### Elements
 In some cases not the molecular but the atomic composition is of interest. The ```elements``` class can be used for atom based balances and works similar:
 
 ``` python
@@ -195,3 +191,38 @@ H2                9.24 %
 NH3              45.38 %
 O2                0.00 %
 ```
+
+## Developer Guide
+Contributions are welcome, please open an issue or submit a pull request on GitHub.
+
+To get started with developing the `gaspype` package, follow these steps.
+
+First, clone the repository to your local machine using Git:
+
+```bash
+git clone https://github.com/DLR-Institute-of-Future-Fuels/gaspype.git
+cd gaspype
+```
+
+It's recommended to setup an venv:
+
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+```
+
+Install the package and dev-dependencies while keeping the package files
+in the current directory:
+
+```bash
+pip install -e .[dev]
+```
+
+Ensure that everything is set up correctly by running the tests:
+
+```bash
+pytest
+```
+
+## License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
