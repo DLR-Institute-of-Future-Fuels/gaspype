@@ -1,0 +1,37 @@
+name: Build and Deploy Docs
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.x"
+      - name: Install dependencies
+        run: pip install sphinx sphinx_rtd_theme sphinx-autodoc-typehints myst-parser
+      - name: Generate Class List
+        run: |
+          pip install .
+          python ./docs/source/generate_class_list.py
+      - name: Build Docs
+        run: |
+          cd docs
+          sphinx-apidoc -o ./source/ ../src/ -M --no-toc
+          rm ./source/*.rst
+          make html
+          touch ./build/html/.nojekyll
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: docs/build/html
