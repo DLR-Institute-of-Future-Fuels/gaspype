@@ -1,6 +1,7 @@
 import yaml
 import struct
 import sys
+import os
 
 
 def main():
@@ -52,6 +53,9 @@ def main():
 
             offset += len(body)
             added_list.add(dat['name'])
+
+    # Ensure the output directory exists
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
     with open(output_file, 'wb') as f:
         f.write(b'gapy')
