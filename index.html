@@ -316,6 +316,11 @@ in the current directory:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.<span class="o">[</span>dev<span class="o">]</span>
 </pre></div>
 </div>
+<p>Compile binary property database from text based files:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>thermo_data/combine_data.py<span class="w"> </span>thermo_data/combined_data.yaml<span class="w"> </span>thermo_data/nasa9*.yaml<span class="w"> </span>thermo_data/nasa9*.xml
+python<span class="w"> </span>thermo_data/compile_to_bin.py<span class="w"> </span>thermo_data/combined_data.yaml<span class="w"> </span>src/gaspype/data/therm_data.bin
+</pre></div>
+</div>
 <p>Ensure that everything is set up correctly by running the tests:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pytest
 </pre></div>
