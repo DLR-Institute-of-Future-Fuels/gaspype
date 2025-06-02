@@ -2,9 +2,9 @@ import numpy as np
 from numpy.typing import NDArray
 from typing import Literal, Sequence, Callable, Any, TypeVar, Iterator, overload
 from math import log as ln, ceil, exp
-import yaml
 from scipy.optimize import minimize, root
 from scipy.linalg import null_space
+from gaspype._phys_data import atomic_weights, db_reader
 import re
 import pkgutil
 
@@ -14,15 +14,9 @@ FloatArray = NDArray[NDFloat]
 
 _T = TypeVar('_T', 'fluid', 'elements')
 
-
-def _get_data(path: str) -> Any:
-    data = pkgutil.get_data(__name__, path)
-    assert data is not None
-    return yaml.safe_load(data)
-
-
-_atomic_weights = _get_data('data/atomic_prop.yaml')['atomic_weights']['data']
-_species_data = {s['name']: s for s in _get_data('data/therm_prop.yaml')['species']}
+data = pkgutil.get_data(__name__, 'data/therm_data.bin')
+assert data is not None, 'Could not load thermodynamic data'
+species_db = db_reader(data)
 
 kB = 1.380649e-23  # J/K
 NA = 6.02214076e23  # 1/mol
@@ -82,21 +76,22 @@ def species(pattern: str = '*', element_names: str | list[str] = [], use_regex: 
         elements = set(element_names)
 
     for el in elements:
-        assert el in _atomic_weights, f'element {el} unknown'
+        assert el in atomic_weights, f'element {el} unknown'
 
     if not use_regex:
-        el_pattern = '|'.join([el for el in _atomic_weights.keys()])
+        el_pattern = '|'.join([el for el in atomic_weights.keys()])
         pattern = pattern.replace('*', '.*')
         pattern = pattern.replace('#', '\\d*')
         pattern = pattern.replace('$', '(' + el_pattern + ')')
         pattern = '^' + pattern + '(,.*)?$'
 
-    return sorted(list(
-        [
-            s['name'] for s in _species_data.values()
-            if re.fullmatch(pattern, s['name']) and
-            (len(elements) == 0 or set(s['composition'].keys()).issubset(elements))
-        ]))
+    if element_names == []:
+        return [sn for sn in species_db.names if re.fullmatch(pattern, sn)]
+    else:
+        return [
+            s.name for s in species_db
+            if re.fullmatch(pattern, s.name) and
+            (len(elements) == 0 or set(s.composition.keys()).issubset(elements))]
 
 
 def set_solver(solver: Literal['gibs minimization', 'system of equations']) -> None:
@@ -162,17 +157,17 @@ class fluid_system:
         self._t_offset = int(t_min)
         self.species = species
         self.active_species = species
-        element_compositions: list[dict[str, float]] = list()
+        element_compositions: list[dict[str, int]] = list()
 
         for i, s in enumerate(species):
-            if s not in _species_data:
+            species_data = species_db.read(s)
+            if not species_data:
                 raise Exception(f'Species {s} not found')
-            element_compositions.append(_species_data[s]['composition'])
+            element_compositions.append(species_data.composition)
 
-            data = _species_data[s]['thermo']
-            assert data['model'] == 'NASA9'
+            assert species_data.model == 9, 'Only NASA9 polynomials are supported'
 
-            for t1, t2, a in zip(data['temperature-ranges'][:-1], data['temperature-ranges'][1:], data['data']):
+            for t1, t2, a in zip(species_data.t_range[:-1], species_data.t_range[1:], species_data.data):
 
                 for j, T in enumerate(temperature_base_points):
                     if t2 >= T >= t1:
@@ -193,7 +188,7 @@ class fluid_system:
         self.elements: list[str] = sorted(list(set(k for ac in element_compositions for k in ac.keys())))
         self.array_species_elements = np.array([[ec[el] if el in ec else 0.0 for el in self.elements] for ec in element_compositions])
 
-        self.array_atomic_mass = np.array([_atomic_weights[el] for el in self.elements]) * 1e-3  # kg/mol
+        self.array_atomic_mass = np.array([atomic_weights[el] for el in self.elements]) * 1e-3  # kg/mol
         self.array_molar_mass: FloatArray = np.sum(self.array_atomic_mass * self.array_species_elements, axis=-1)  # kg/mol
 
         self.array_stoichiometric_coefficients: FloatArray = np.array(null_space(self.array_species_elements.T), dtype=NDFloat).T
@@ -315,7 +310,7 @@ class fluid:
 
         self.array_composition: FloatArray = comp_array
         self.total: FloatArray | float = np.sum(self.array_composition, axis=-1, dtype=NDFloat)
-        self.array_fractions = self.array_composition / (np.expand_dims(self.total, -1) + _epsy)
+        self.array_fractions: FloatArray = self.array_composition / (np.expand_dims(self.total, -1) + _epsy)
         self.shape: _Shape = self.array_composition.shape[:-1]
         self.fs = fs
         self.array_elemental_composition: FloatArray = np.dot(self.array_composition, fs.array_species_elements)
@@ -899,7 +894,7 @@ def _equilibrium_eq(fs: fluid_system, element_composition: FloatArray, t: float,
 
         return (np.hstack([eq_resid, ab_resid]), np.concatenate([j_eq, j_ab], axis=0))
 
-    ret = root(residuals, logn_start, jac=True, tol=1e-30)  # type: ignore
+    ret = root(residuals, logn_start, jac=True, tol=1e-30)
     n = np.exp(np.array(ret['x'], dtype=NDFloat))
 
     return n * el_max
