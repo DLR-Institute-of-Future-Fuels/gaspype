@@ -36,10 +36,10 @@ def main():
         f.write('species:\n')
         for species in sorted(therm_prop, key=lambda s: s['name']):
             f.write('\n- ' + yaml.dump({'name': species['name']}, default_flow_style=False))
-            f.write(f'  composition: {yaml.dump(species["composition"],default_flow_style=True)}')
+            f.write(f'  composition: {yaml.dump(species["composition"], default_flow_style=True)}')
             f.write('  thermo:\n')
             f.write(f'    model: {species["thermo"]["model"]}\n')
-            f.write(f'    temperature-ranges: {yaml.dump(species["thermo"]["temperature-ranges"],default_flow_style=True)}')
+            f.write(f'    temperature-ranges: {yaml.dump(species["thermo"]["temperature-ranges"], default_flow_style=True)}')
             f.write('    data:\n')
             for d in species['thermo']['data']:
                 f.write(f'    - {d}\n')
