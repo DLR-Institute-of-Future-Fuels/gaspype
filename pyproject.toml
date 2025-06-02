@@ -1,6 +1,6 @@
 [project]
 name = "gaspype"
-version = "1.0.1"
+version = "1.1.0"
 authors = [
   { name="Nicolas Kruse", email="nicolas.kruse@dlr.de" },
 ]
@@ -20,6 +20,7 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/DLR-Institute-of-Future-Fuels/gaspype"
 Issues = "https://github.com/DLR-Institute-of-Future-Fuels/gaspype/issues"
+documentation = "https://dlr-institute-of-future-fuels.github.io/gaspype/"
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]

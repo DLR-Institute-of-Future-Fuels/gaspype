@@ -1,0 +1,40 @@
+name: Publish to PyPI
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  publish:
+    name: Build and publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Ensure this is main branch
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+        run: echo "Proceeding with publish"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build tools
+        run: python -m pip install --upgrade build twine pyyaml
+
+      - name: Prepare data and compile thermo database
+        run: |
+          python thermo_data/combine_data.py thermo_data/combined_data.yaml thermo_data/nasa9*.yaml thermo_data/nasa9*.xml
+          python thermo_data/compile_to_bin.py thermo_data/combined_data.yaml src/gaspype/data/therm_data.bin
+
+      - name: Build package
+        run: python -m build
+
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        
+        run: python -m twine upload dist/*
