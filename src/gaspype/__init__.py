@@ -14,9 +14,9 @@ FloatArray = NDArray[NDFloat]
 
 _T = TypeVar('_T', 'fluid', 'elements')
 
-data = pkgutil.get_data(__name__, 'data/therm_data.bin')
-assert data is not None, 'Could not load thermodynamic data'
-species_db = db_reader(data)
+_data = pkgutil.get_data(__name__, 'data/therm_data.bin')
+assert _data is not None, 'Could not load thermodynamic data'
+_species_db = db_reader(_data)
 
 kB = 1.380649e-23  # J/K
 NA = 6.02214076e23  # 1/mol
@@ -86,10 +86,10 @@ def species(pattern: str = '*', element_names: str | list[str] = [], use_regex: 
         pattern = '^' + pattern + '(,.*)?$'
 
     if element_names == []:
-        return [sn for sn in species_db.names if re.fullmatch(pattern, sn)]
+        return [sn for sn in _species_db.names if re.fullmatch(pattern, sn)]
     else:
         return [
-            s.name for s in species_db
+            s.name for s in _species_db
             if re.fullmatch(pattern, s.name) and
             (len(elements) == 0 or set(s.composition.keys()).issubset(elements))]
 
@@ -160,7 +160,7 @@ class fluid_system:
         element_compositions: list[dict[str, int]] = list()
 
         for i, s in enumerate(species):
-            species_data = species_db.read(s)
+            species_data = _species_db.read(s)
             if not species_data:
                 raise Exception(f'Species {s} not found')
             element_compositions.append(species_data.composition)
@@ -240,6 +240,14 @@ class fluid_system:
             Array of gibbs free energy divided by RT (dimensionless)
         """
         return lookup(self._g_rt_array, t, self._t_offset)
+    
+    def get_species_references(self) -> str:
+        """Get a string with the references for all fluids of the fluid system
+
+        Returns:
+            String with the references
+        """
+        return '\n'.join([f'{s:<12}: {_species_db[s].ref_string}' for s in self.species])
 
     def __add__(self, other: 'fluid_system') -> 'fluid_system':
         assert isinstance(other, self.__class__)
