@@ -218,6 +218,13 @@ in the current directory:
 pip install -e .[dev]
 ```
 
+Compile binary property database from text based files:
+
+```bash
+python thermo_data/combine_data.py thermo_data/combined_data.yaml thermo_data/nasa9*.yaml thermo_data/nasa9*.xml
+python thermo_data/compile_to_bin.py thermo_data/combined_data.yaml src/gaspype/data/therm_data.bin
+```
+
 Ensure that everything is set up correctly by running the tests:
 
 ```bash
