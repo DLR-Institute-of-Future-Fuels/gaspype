@@ -240,7 +240,7 @@ class fluid_system:
             Array of gibbs free energy divided by RT (dimensionless)
         """
         return lookup(self._g_rt_array, t, self._t_offset)
-    
+
     def get_species_references(self) -> str:
         """Get a string with the references for all fluids of the fluid system
 
