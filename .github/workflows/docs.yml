@@ -22,6 +22,7 @@ jobs:
       - name: Generate Class List
         run: |
           echo "Create a dummy file to ensure the class list generation works"
+          mkdir -p src/gaspype/data
           printf 'gapy\x00\x00\x00\x00' > src/gaspype/data/therm_data.bin
           pip install .
           python ./docs/source/generate_class_list.py
