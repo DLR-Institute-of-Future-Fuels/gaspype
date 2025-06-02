@@ -21,6 +21,8 @@ jobs:
         run: pip install sphinx sphinx_rtd_theme sphinx-autodoc-typehints myst-parser
       - name: Generate Class List
         run: |
+          echo "Create a dummy file to ensure the class list generation works"
+          printf 'gapy\x00\x00\x00\x00' > src/gaspype/data/therm_data.bin
           pip install .
           python ./docs/source/generate_class_list.py
       - name: Build Docs

@@ -1002,10 +1002,9 @@ def carbon_activity(f: fluid | elements, t: float, p: float) -> float:
     return exp(lnalpha)
 
 
-_oxygen_data = fluid({'O2': 1})
-
-
 def oxygen_partial_pressure(f: fluid | elements, t: float, p: float) -> FloatArray | float:
+    _oxygen_data = fluid({'O2': 1})
+
     def get_oxygen(x: FloatArray) -> float:
         g_rt = f.fs.get_species_g_rt(t)
         g_rt_o2 = _oxygen_data.fs.get_species_g_rt(t)[0]

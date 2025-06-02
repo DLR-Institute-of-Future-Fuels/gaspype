@@ -31,7 +31,7 @@ General syntax is: ```python compile_to_bin.py YAML_INPUT_FILE BINARY_OUTPUT_FIL
 The binary format is structured like this, it uses little-endian and IEEE 754 floats:
 ```
 [4 Byte magic number: 'gapy']
-[8 Byte: 32 Bit integer for length of all species names (NAMES_LENGTH)]
+[4 Byte: 32 Bit integer for length of all species names (NAMES_LENGTH)]
 [NAMES_LENGTH Bytes: ASCII encoded string with all species names separated by space]
 [Index
     [For each species
