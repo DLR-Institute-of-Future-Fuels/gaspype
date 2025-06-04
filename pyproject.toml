@@ -42,6 +42,18 @@ dev = [
     "types-PyYAML",
     "scipy-stubs"
 ]
+doc_build = [
+  "sphinx",
+  "sphinx_rtd_theme",
+  "sphinx-autodoc-typehints",
+  "myst-parser",
+  "pandas",
+  "matplotlib",
+  "ipykernel",
+  "jupyter",
+  "nbconvert",
+  "notedown"
+]
 
 [tool.mypy]
 files = ["src"]
