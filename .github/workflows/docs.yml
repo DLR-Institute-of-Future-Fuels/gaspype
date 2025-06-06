@@ -19,7 +19,7 @@ jobs:
           python-version: "3.x"
       - name: Build database
         run: |
-          pip install yaml
+          pip install pyyaml
           python thermo_data/combine_data.py thermo_data/combined_data.yaml thermo_data/nasa9*.yaml
           python thermo_data/compile_to_bin.py thermo_data/combined_data.yaml src/gaspype/data/therm_data.bin
         # echo "Create a dummy file to ensure gaspype does't crash"
