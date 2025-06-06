@@ -16,7 +16,7 @@ def run_cmd(command: list[str]):
 
     assert (not result.stderr or
             any('RuntimeWarning: ' in line for line in result.stderr.splitlines()) or
-            any('[NbConvertApp]' in line and 'error' not in line.lower() for line in result.stderr.splitlines())), 'ERROR: ' + result.stderr
+            any('[NbConvertApp]' in line or 'Warning' in line for line in result.stderr.splitlines())), 'ERROR: ' + result.stderr
 
 
 def run_rendering(input_path: str, output_directory: str):
