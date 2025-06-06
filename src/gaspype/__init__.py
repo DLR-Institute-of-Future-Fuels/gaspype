@@ -29,9 +29,9 @@ p_atm = 101325  # Pa
 _epsy = 1e-18
 
 
-def lookup(prop_array: FloatArray,
-           temperature: FloatArray | float,
-           t_offset: float) -> FloatArray:
+def _lookup(prop_array: FloatArray,
+            temperature: FloatArray | float,
+            t_offset: float) -> FloatArray:
     """linear interpolates values from the given prop_array
 
     Args:
@@ -58,9 +58,9 @@ def species(pattern: str = '*', element_names: str | list[str] = [], use_regex: 
     Args:
         pattern: Optional filter for specific molecules
             Placeholder characters:
-                # A number including non written ones: 'C#H#' matches 'CH4'
-                $ Arbitrary element name
-                * Any sequence of characters
+            # A number including non written ones: 'C#H#' matches 'CH4';
+            $ Arbitrary element name;
+            * Any sequence of characters
         element_names:
             restrict results to species that contain only the specified elements.
             The elements can be supplied as list of strings or as comma separated string.
@@ -95,7 +95,17 @@ def species(pattern: str = '*', element_names: str | list[str] = [], use_regex: 
 
 
 def set_solver(solver: Literal['gibs minimization', 'system of equations']) -> None:
-    """Select a solver for chemical equilibrium.
+    """
+    Select a solver for chemical equilibrium.
+
+    Solvers:
+        - **system of equations** (default): Finds the root for a system of
+          equations covering a minimal set of equilibrium equations and elemental balance.
+          The minimal set of equilibrium equations is derived by SVD using the null_space
+          implementation of scipy.
+
+        - **gibs minimization**: Minimizes the total Gibbs Enthalpy while keeping
+          the elemental composition constant using the SLSQP implementation of scipy
 
     Args:
         solver: Name of the solver
@@ -127,10 +137,10 @@ class fluid_system:
 
     Attributes:
         species_names (list[str]): List of selected species in the fluid_system
-        array_molar_mass: Array of the molar masses of the species in the fluid_system
-        array_element_composition: Array of the element composition of the species in the fluid_system.
+        array_molar_mass (FloatArray): Array of the molar masses of the species in the fluid_system
+        array_element_composition (FloatArray): Array of the element composition of the species in the fluid_system.
             Dimension is: (number of species, number of elements)
-        array_atomic_mass: Array of the atomic masses of the elements in the fluid_system
+        array_atomic_mass (FloatArray): Array of the atomic masses of the elements in the fluid_system
     """
 
     def __init__(self, species: list[str] | str, t_min: int = 250, t_max: int = 2000):
@@ -202,7 +212,7 @@ class fluid_system:
         Returns:
             Array with the enthalpies of each specie in J/mol
         """
-        return lookup(self._h_array, t, self._t_offset)
+        return _lookup(self._h_array, t, self._t_offset)
 
     def get_species_s(self, t: float | FloatArray) -> FloatArray:
         """Get the molar entropies for all species in the fluid system
@@ -213,7 +223,7 @@ class fluid_system:
         Returns:
             Array with the entropies of each specie in J/mol/K
         """
-        return lookup(self._s_array, t, self._t_offset)
+        return _lookup(self._s_array, t, self._t_offset)
 
     def get_species_cp(self, t: float | FloatArray) -> FloatArray:
         """Get the isobaric molar heat capacity for all species in the fluid system
@@ -224,7 +234,7 @@ class fluid_system:
         Returns:
             Array with the heat capacities of each specie in J/mol/K
         """
-        return lookup(self._cp_array, t, self._t_offset)
+        return _lookup(self._cp_array, t, self._t_offset)
 
     # def get_species_g(self, t: float | NDArray[_Float]) -> NDArray[_Float]:
     #     return lookup(self._g_array, t, self._t_offset)
@@ -239,7 +249,7 @@ class fluid_system:
         Returns:
             Array of gibbs free energy divided by RT (dimensionless)
         """
-        return lookup(self._g_rt_array, t, self._t_offset)
+        return _lookup(self._g_rt_array, t, self._t_offset)
 
     def get_species_references(self) -> str:
         """Get a string with the references for all fluids of the fluid system
@@ -263,13 +273,12 @@ class fluid:
     one or more species.
 
     Attributes:
-        fs: Reference to the fluid_system used for this fluid
-        species: List of species names in the associated fluid_system
-        array_composition: Array of the molar amounts of the species in the fluid
-        array_element_composition: Array of the element composition in the fluid
-        array_fractions: Array of the molar fractions of the species in the fluid
-        total: Array of the sums of the molar amount of all species
-        fs: Reference to the fluid_system used for this fluid
+        species (list[str]): List of species names in the associated fluid_system
+        array_composition (FloatArray): Array of the molar amounts of the species in the fluid
+        array_element_composition (FloatArray): Array of the element composition in the fluid
+        array_fractions (FloatArray): Array of the molar fractions of the species in the fluid
+        total (FloatArray | float): Array of the sums of the molar amount of all species
+        fs (fluid_system): Reference to the fluid_system used for this fluid
     """
 
     __array_priority__ = 100
@@ -606,7 +615,7 @@ class elements:
     """Represent a fluid by composition of elements.
 
     Attributes:
-        array_element_composition: Array of the element composition
+        array_element_composition (FloatArray): Array of the element composition
     """
 
     __array_priority__ = 100

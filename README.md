@@ -62,7 +62,8 @@ fl.get_density(t=t_range, p=1e5)
 ```
 array([0.10122906, 0.09574625, 0.09082685, 0.08638827, 0.08236328])
 ```
-A ```fluid``` object can have multiple compositions. A multidimensional ```fluid``` object can be created for example by multiplication with a numpy array:
+A ```fluid``` object can have multiple compositions. A multidimensional ```fluid``` object
+can be created for example by multiplication with a numpy array:
 
 ``` python
 fl2 = gp.fluid({'H2O': 1, 'N2': 2}) + \
@@ -125,7 +126,8 @@ array([[[0.        , 0.5       , 0.5       ],
 ```
 
 ### Elements
-In some cases not the molecular but the atomic composition is of interest. The ```elements``` class can be used for atom based balances and works similar:
+In some cases not the molecular but the atomic composition is of interest.
+The ```elements``` class can be used for atom based balances and works similar:
 
 ``` python
 el = gp.elements({'N': 1, 'Cl': 2})
@@ -134,7 +136,9 @@ el.get_mass()
 ```
 np.float64(0.08490700000000001)
 ```
-A ```elements``` object can be as well instantiated from a ```fluid``` object. Arithmetic operations between ```elements``` and ```fluid``` result in an ```elements``` object:
+A ```elements``` object can be as well instantiated from a ```fluid``` object.
+Arithmetic operations between ```elements``` and ```fluid``` result in
+an ```elements``` object:
 ``` python
 el2 = gp.elements(fl) + el - 0.3 * fl
 el2
@@ -146,7 +150,8 @@ N                1.000e+00 mol
 O                7.000e-01 mol
 ```
 
-Going from an atomic composition to an molecular composition is a little bit less straight forward, since there is no universal approach. One way is to calculate the thermodynamic equilibrium for a mixture:
+Going from an atomic composition to an molecular composition is possible as well.
+One way is to calculate the thermodynamic equilibrium for a mixture:
 
 ``` python
 fs = gp.fluid_system('CH4, H2, CO, CO2, O2')
@@ -163,7 +168,13 @@ CO2              33.07 %
 O2                0.00 %
 ```
 
-The ```equilibrium``` function can be called with a ```fluid``` or ```elements``` object as first argument. ```fluid``` and ```elements``` referencing a ```fluid_system``` object witch can be be set as shown above during the object instantiation. If not provided, a new one will be created automatically. Providing a ```fluid_system``` gives more control over which molecular species are included in derived ```fluid``` objects. Furthermore arithmetic operations between objects with the same ```fluid_system``` are potentially faster:
+The ```equilibrium``` function can be called with a ```fluid``` or ```elements``` object
+as first argument. ```fluid``` and ```elements``` referencing a ```fluid_system``` object
+witch can be be set as shown above during the object instantiation. If not provided,
+a new one will be created automatically. Providing a ```fluid_system``` gives more
+control over which molecular species are included in derived ```fluid``` objects.
+Furthermore arithmetic operations between objects with the same ```fluid_system```
+are potentially faster:
 
 ``` python
 fl3 + gp.fluid({'CH4': 1}, fs)
@@ -177,7 +188,9 @@ CO2              18.07 %
 O2                0.00 %
 ```
 
-Especially if the ```fluid_system``` of one of the operants has not a subset of molecular species of the other ```fluid_system``` a new ```fluid_system``` will be created for the operation which might degrade performance:
+Especially if the ```fluid_system``` of one of the operants has not a subset of
+molecular species of the other ```fluid_system``` a new ```fluid_system``` will
+be created for the operation which might degrade performance:
 
 ``` python
 fl3 + gp.fluid({'NH3': 1})

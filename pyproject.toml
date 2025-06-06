@@ -41,7 +41,20 @@ dev = [
     "cantera",
     "pyyaml>=6.0.1",
     "types-PyYAML",
-    "scipy-stubs"
+    "scipy-stubs",
+    "matplotlib"
+]
+doc_build = [
+  "sphinx",
+  "pydata_sphinx_theme",
+  "sphinx-autodoc-typehints",
+  "myst-parser",
+  "pandas",
+  "matplotlib",
+  "ipykernel",
+  "jupyter",
+  "nbconvert",
+  "notedown"
 ]
 
 [tool.mypy]
