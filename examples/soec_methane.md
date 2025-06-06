@@ -1,3 +1,5 @@
+# SOEC example
+
 ```python
 import gaspype as gp
 from gaspype import R, F
