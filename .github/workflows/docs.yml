@@ -29,6 +29,7 @@ jobs:
         run: python ./docs/source/render_examples.py
       - name: Build Docs
         run: |
+          cp LICENSE docs/source/LICENSE.md
           cd docs
           sphinx-apidoc -o ./source/ ../src/ -M --no-toc
           rm ./source/*.rst
