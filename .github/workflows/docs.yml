@@ -17,15 +17,16 @@ jobs:
         uses: actions/setup-python@v3
         with:
           python-version: "3.x"
-      - name: Install dependencies
-        run: pip install sphinx sphinx_rtd_theme sphinx-autodoc-typehints myst-parser
-      - name: Generate Class List
+      - name: Install gaspype and dependencies
         run: |
-          echo "Create a dummy file to ensure the class list generation works"
+          echo "Create a dummy file to ensure gaspype does't crash"
           mkdir -p src/gaspype/data
           printf 'gapy\x00\x00\x00\x00' > src/gaspype/data/therm_data.bin
-          pip install .
-          python ./docs/source/generate_class_list.py
+          pip install .[doc_build]
+      - name: Generate Class List
+        run: python ./docs/source/generate_class_list.py
+      - name: Generate Examples
+        run: python ./docs/source/render_examples.py
       - name: Build Docs
         run: |
           cd docs
