@@ -17,7 +17,7 @@ author = 'Nicolas Kruse'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ["sphinx.ext.autodoc", "sphinx.ext.napoleon", "sphinx_autodoc_typehints", "myst_parser"]
+extensions = ["sphinx.ext.autodoc", "sphinx.ext.napoleon", "sphinx_autodoc_typehints", "myst_parser", "sphinx.ext.autosummary"]
 
 templates_path = ['_templates']
 exclude_patterns = []
@@ -26,7 +26,8 @@ exclude_patterns = []
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 # html_theme = 'alabaster'
-html_theme = 'sphinx_rtd_theme'
+html_theme = 'pydata_sphinx_theme'
 html_static_path = ['_static']
 
 autodoc_inherit_docstrings = True
+autoclass_content = 'both'
