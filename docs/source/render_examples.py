@@ -28,6 +28,7 @@ def run_rendering(input_path: str, output_directory: str):
     run_cmd(['jupyter', 'nbconvert', '--to', 'markdown', f'{output_directory}/{file_name}.ipynb', '--output', f'{file_name}.md'])
     run_cmd(['python', 'tests/md_to_code.py', 'script', f'{input_path}', f'{output_directory}/{file_name}.py'])
 
+
 def write_dochtree(f: TextIOWrapper, title: str, items: list[str]):
     f.write('```{toctree}\n')
     f.write(':maxdepth: 1\n')
