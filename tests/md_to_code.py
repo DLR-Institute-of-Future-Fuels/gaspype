@@ -93,7 +93,10 @@ def segments_to_test(segments: Iterable[markdown_segment], script_language: str 
         if segment.code_block:
             if segment.language == script_language:
                 lines = [line for line in segment.text.splitlines() if line.strip()]
-                ret_block_flag = lines[-1] if not re.match(r'^[^(]*=', lines[-1]) and not lines[-1].startswith('import ') else None
+                ret_block_flag = lines[-1] if (not re.match(r'^[^(]*=', lines[-1]) and
+                                               not lines[-1].startswith('import ') and
+                                               not lines[-1].startswith('from ') and
+                                               not lines[-1].startswith(' ')) else None
                 # print('Last line: ', ret_block_flag, '-----------', lines[-1])
 
                 yield ''
