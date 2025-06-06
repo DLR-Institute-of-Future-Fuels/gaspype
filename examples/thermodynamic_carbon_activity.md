@@ -58,7 +58,7 @@ Plot carbon activities, a activity of > 1 means there is thermodynamically the f
 
 ```python
 fig, ax = plt.subplots(figsize=(6, 4), dpi=120)
-ax.set_xlabel("CO2/CH4")
+ax.set_xlabel("H2O/CH4")
 ax.set_ylabel("carbon activity")
 ax.set_ylim(1e-1, 1e3)
 ax.set_yscale('log')
