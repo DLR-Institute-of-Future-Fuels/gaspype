@@ -1,0 +1,30 @@
+# Gaspype examples
+
+```{toctree}
+:maxdepth: 1
+carbon_activity
+soec_methane
+sulfur_oxygen_equalibrium
+methane_mixtures
+```
+
+## Download Jupyter Notebooks
+
+- [carbon_activity.ipynb](carbon_activity.ipynb)
+
+- [soec_methane.ipynb](soec_methane.ipynb)
+
+- [sulfur_oxygen_equalibrium.ipynb](sulfur_oxygen_equalibrium.ipynb)
+
+- [methane_mixtures.ipynb](methane_mixtures.ipynb)
+
+## Download plain python files
+
+- [carbon_activity.py](carbon_activity.py)
+
+- [soec_methane.py](soec_methane.py)
+
+- [sulfur_oxygen_equalibrium.py](sulfur_oxygen_equalibrium.py)
+
+- [methane_mixtures.py](methane_mixtures.py)
+

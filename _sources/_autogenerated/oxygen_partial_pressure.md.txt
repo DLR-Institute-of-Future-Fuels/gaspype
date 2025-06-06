@@ -1,0 +1,5 @@
+# gaspype.oxygen_partial_pressure
+```{eval-rst}
+.. autofunction:: gaspype.oxygen_partial_pressure
+```
+
