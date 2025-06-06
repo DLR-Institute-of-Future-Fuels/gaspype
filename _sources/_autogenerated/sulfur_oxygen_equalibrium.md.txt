@@ -69,7 +69,7 @@ plt.legend(composition.species)
 
 
 
-    <matplotlib.legend.Legend at 0x7f4fb548b380>
+    <matplotlib.legend.Legend at 0x7f273bc674d0>
 
 
 
@@ -97,7 +97,7 @@ plt.legend(composition.species)
 
 
 
-    <matplotlib.legend.Legend at 0x7f4fb1351450>
+    <matplotlib.legend.Legend at 0x7f2737b59450>
 
 
 
