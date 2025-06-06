@@ -346,12 +346,12 @@
 <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">fs</span><span class="o">.</span><span class="n">active_species</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>&lt;matplotlib.legend.Legend at 0x7fa21b242f90&gt;
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>&lt;matplotlib.legend.Legend at 0x7f0e7ddeee40&gt;
 </pre></div>
 </div>
 <p><img alt="png" src="../_images/methane_mixtures_6_1.png" /></p>
 <p>Equilibrium calculation for methane CO2 mixtures:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">el</span> <span class="o">=</span> <span class="n">gp</span><span class="o">.</span><span class="n">fluid</span><span class="p">({</span><span class="s1">&#39;CH4&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span> <span class="n">fs</span><span class="p">)</span> <span class="o">+</span> <span class="n">ratio</span> <span class="o">*</span> <span class="n">gp</span><span class="o">.</span><span class="n">fluid</span><span class="p">({</span><span class="s1">&#39;H2O&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span> <span class="n">fs</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">el</span> <span class="o">=</span> <span class="n">gp</span><span class="o">.</span><span class="n">fluid</span><span class="p">({</span><span class="s1">&#39;CH4&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span> <span class="n">fs</span><span class="p">)</span> <span class="o">+</span> <span class="n">ratio</span> <span class="o">*</span> <span class="n">gp</span><span class="o">.</span><span class="n">fluid</span><span class="p">({</span><span class="s1">&#39;CO2&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span> <span class="n">fs</span><span class="p">)</span>
 <span class="n">equilibrium_co2</span> <span class="o">=</span> <span class="n">gp</span><span class="o">.</span><span class="n">equilibrium</span><span class="p">(</span><span class="n">el</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -364,7 +364,7 @@
 <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">fs</span><span class="o">.</span><span class="n">active_species</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>&lt;matplotlib.legend.Legend at 0x7fa2171642d0&gt;
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>&lt;matplotlib.legend.Legend at 0x7f0e7dd3c2d0&gt;
 </pre></div>
 </div>
 <p><img alt="png" src="../_images/methane_mixtures_9_1.png" /></p>

@@ -43,7 +43,7 @@ ax.legend(fs.active_species)
 
 
 
-    <matplotlib.legend.Legend at 0x7fa21b242f90>
+    <matplotlib.legend.Legend at 0x7f0e7ddeee40>
 
 
 
@@ -57,7 +57,7 @@ Equilibrium calculation for methane CO2 mixtures:
 
 
 ```python
-el = gp.fluid({'CH4': 1}, fs) + ratio * gp.fluid({'H2O': 1}, fs)
+el = gp.fluid({'CH4': 1}, fs) + ratio * gp.fluid({'CO2': 1}, fs)
 equilibrium_co2 = gp.equilibrium(el, t, p)
 ```
 
@@ -75,7 +75,7 @@ ax.legend(fs.active_species)
 
 
 
-    <matplotlib.legend.Legend at 0x7fa2171642d0>
+    <matplotlib.legend.Legend at 0x7f0e7dd3c2d0>
 
 
 

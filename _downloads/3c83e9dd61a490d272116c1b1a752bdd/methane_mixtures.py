@@ -35,7 +35,7 @@ ax.legend(fs.active_species)
 
 #  Equilibrium calculation for methane CO2 mixtures:
 
-el = gp.fluid({'CH4': 1}, fs) + ratio * gp.fluid({'H2O': 1}, fs)
+el = gp.fluid({'CH4': 1}, fs) + ratio * gp.fluid({'CO2': 1}, fs)
 equilibrium_co2 = gp.equilibrium(el, t, p)
 
 
