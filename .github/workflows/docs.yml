@@ -23,7 +23,8 @@ jobs:
           mkdir -p src/gaspype/data
           printf 'gapy\x00\x00\x00\x00' > src/gaspype/data/therm_data.bin
           pip install .[doc_build]
-      - name: Generate Class List
+          python -m ipykernel install --user --name temp_kernel --display-name "Python (temp_kernel)"
+      - name: Generate Docs
         run: python ./docs/source/generate_class_list.py
       - name: Generate Examples
         run: python ./docs/source/render_examples.py
