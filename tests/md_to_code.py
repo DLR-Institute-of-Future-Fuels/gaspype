@@ -1,9 +1,8 @@
-
-
 import re
-from typing import Generator, Iterable, Literal
+from typing import Generator, Iterable
 from dataclasses import dataclass
 import sys
+
 
 @dataclass
 class markdown_segment:
@@ -24,7 +23,7 @@ def convert_to(target_format: str, md_filename: str, out_filename: str, language
             f_out.write('\n'.join(segments_to_striped_markdown(segments, language)))
         else:
             raise ValueError('Unknown target format')
-            
+
 
 def segment_markdown(markdown_file: Iterable[str]) -> Generator[markdown_segment, None, None]:
     regex = re.compile(r"(?:^```\s*(?P<language>(?:\w|-)*)$)", re.MULTILINE)
@@ -95,7 +94,7 @@ def segments_to_test(segments: Iterable[markdown_segment], script_language: str 
             if segment.language == script_language:
                 lines = [line for line in segment.text.splitlines() if line.strip()]
                 ret_block_flag = lines[-1] if not re.match(r'^[^(]*=', lines[-1]) and not lines[-1].startswith('import ') else None
-                print('Last line: ', ret_block_flag, '-----------', lines[-1])
+                # print('Last line: ', ret_block_flag, '-----------', lines[-1])
 
                 yield ''
                 yield '    print("---------------------------------------------------------")'
@@ -118,6 +117,7 @@ def segments_to_test(segments: Iterable[markdown_segment], script_language: str 
 
     yield '\nif __name__ == "__main__":'
     yield '    run_test()'
+
 
 if __name__ == "__main__":
     format = sys.argv[1]
