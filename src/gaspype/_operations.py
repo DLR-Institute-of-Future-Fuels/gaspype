@@ -2,7 +2,8 @@ from typing import Literal, Any
 from math import exp
 from scipy.optimize import minimize, root
 import numpy as np
-from ._main import T, NDFloat, elements, fluid, fluid_system, FloatArray
+from ._main import T, elements, fluid, fluid_system
+from .typing import NDFloat, FloatArray
 from .constants import p0, epsy, R
 
 
