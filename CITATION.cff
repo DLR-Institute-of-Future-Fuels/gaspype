@@ -8,11 +8,12 @@ authors:
     affiliation: "German Aerospace Center (DLR)"
     address: "Linder Höhe"
     city: Köln
-version: 1.0.1
-date-released: "2025-05-09"
+version: 1.1.1
+date-released: "2025-06-17"
 #identifiers:
 #  - description: This is the collection of archived snapshots of all versions of Gaspype
 #    type: doi
 #    value: ""
 license: MIT License
 repository-code: "https://github.com/DLR-Institute-of-Future-Fuels/gaspype"
+documentation: "https://dlr-institute-of-future-fuels.github.io/gaspype"
