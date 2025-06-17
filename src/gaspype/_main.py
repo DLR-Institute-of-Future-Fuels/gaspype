@@ -21,13 +21,10 @@ def species(pattern: str = '*', element_names: str | list[str] = [], use_regex: 
     filtered by a pattern if supplied
 
     Args:
-        pattern: Optional filter for specific molecules
-            Placeholder characters:
-            # A number including non written ones: 'C#H#' matches 'CH4';
-            $ Arbitrary element name;
-            * Any sequence of characters
-        element_names:
-            restrict results to species that contain only the specified elements.
+        pattern: Optional filter for specific molecules. Placeholder
+            characters: # A number including non written ones: 'C#H#' matches 'CH4';
+            $ Arbitrary element name; * Any sequence of characters
+        element_names: restrict results to species that contain only the specified elements.
             The elements can be supplied as list of strings or as comma separated string.
         use_regex: using regular expression for the pattern
 
