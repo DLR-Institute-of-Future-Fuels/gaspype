@@ -1,9 +1,0 @@
-# gaspype.elements
-```{eval-rst}
-.. autoclass:: gaspype.elements
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :inherited-members:
-```
-

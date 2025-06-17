@@ -1,5 +1,0 @@
-# gaspype.concat
-```{eval-rst}
-.. autofunction:: gaspype.concat
-```
-

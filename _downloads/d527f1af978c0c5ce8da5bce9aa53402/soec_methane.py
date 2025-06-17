@@ -5,7 +5,7 @@
 #  The operating parameters chosen here are not necessary realistic
 
 import gaspype as gp
-from gaspype import R, F
+from gaspype.constants import R, F
 import numpy as np
 import matplotlib.pyplot as plt
 

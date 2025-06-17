@@ -1,9 +1,0 @@
-# gaspype.fluid
-```{eval-rst}
-.. autoclass:: gaspype.fluid
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :inherited-members:
-```
-

@@ -1,5 +1,0 @@
-# gaspype.species
-```{eval-rst}
-.. autofunction:: gaspype.species
-```
-

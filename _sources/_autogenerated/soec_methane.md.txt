@@ -7,7 +7,7 @@ The operating parameters chosen here are not necessary realistic
 
 ```python
 import gaspype as gp
-from gaspype import R, F
+from gaspype.constants import R, F
 import numpy as np
 import matplotlib.pyplot as plt
 ```
@@ -56,7 +56,7 @@ ax.legend(air_side.species)
 
 
 
-    <matplotlib.legend.Legend at 0x7f40324a87d0>
+    <matplotlib.legend.Legend at 0x7ff44d19b250>
 
 
 
@@ -95,7 +95,7 @@ ax.legend(['o2_fuel_side', 'o2_air_side'])
 
 
 
-    <matplotlib.legend.Legend at 0x7f403011d310>
+    <matplotlib.legend.Legend at 0x7ff448fbfd90>
 
 
 
@@ -177,7 +177,7 @@ ax.plot(z_position, node_current, '-')
 
 
 
-    [<matplotlib.lines.Line2D at 0x7f4029f89f90>]
+    [<matplotlib.lines.Line2D at 0x7ff448ca11d0>]
 
 
 

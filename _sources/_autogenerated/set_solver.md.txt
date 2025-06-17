@@ -1,5 +1,0 @@
-# gaspype.set_solver
-```{eval-rst}
-.. autofunction:: gaspype.set_solver
-```
-

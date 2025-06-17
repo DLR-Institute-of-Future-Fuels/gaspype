@@ -1,5 +1,0 @@
-# gaspype.equilibrium
-```{eval-rst}
-.. autofunction:: gaspype.equilibrium
-```
-

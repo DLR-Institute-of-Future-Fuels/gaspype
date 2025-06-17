@@ -1,5 +1,0 @@
-# gaspype.carbon_activity
-```{eval-rst}
-.. autofunction:: gaspype.carbon_activity
-```
-

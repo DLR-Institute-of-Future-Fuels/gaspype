@@ -1,5 +1,0 @@
-# gaspype.stack
-```{eval-rst}
-.. autofunction:: gaspype.stack
-```
-
