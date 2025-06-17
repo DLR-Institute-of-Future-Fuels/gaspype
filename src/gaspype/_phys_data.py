@@ -1,32 +1,44 @@
 import struct
 from typing import Generator, Iterator
+from dataclasses import dataclass
 
 
-class SpeciesData():
+def split_on_space(data: bytes, offset: int, end: int) -> Iterator[str]:
+    """Splits a byte array into ASCII strings based on spaces.
+    Args:
+        data: The byte array to split.
+        offset: The starting index in the byte array.
+        end: The ending index in the byte array.
+    Yields:
+        str: ASCII strings found in the byte array.
+    """
+    start = offset
+    for i in range(offset, end):
+        if data[i] == 0x20:  # ASCII space character
+            if start < i:
+                yield data[start:i].decode('ascii')
+            start = i + 1
+    if start < end:
+        yield data[start:end].decode('ascii')
+
+
+@dataclass
+class SpeciesData:
     """Class to hold the physical data for a species.
     Attributes:
-        comp: Dictionary of species composition with element symbols as keys and their counts as values.
+        name: Name of the species.
+        composition: Dictionary of species composition with element symbols as keys and their counts as values.
         model: Number of polynomial coefficients used in the model.
         ref_string: Reference string for the data source.
         t_range: List of temperatures nodes marking intervals.
         data: List of lists containing physical data for each temperature interval.
     """
-
-    def __init__(self, name: str, comp: dict[str, int], model: int, ref: str, t_range: list[float], data: list[list[float]]):
-        self.name = name
-        self.composition: dict[str, int] = comp
-        self.model: int = model
-        self.ref_string: str = ref
-        self.t_range: list[float] = t_range
-        self.data: list[list[float]] = data
-
-    def __repr__(self) -> str:
-        return (f"Name: {self.name}\n" +
-                f"Composition: {self.composition}\n" +
-                f"Model: {self.model}\n" +
-                f"Reference: {self.ref_string}\n" +
-                f"Temperatures: {self.t_range}\n" +
-                f"Data: {self.data}".replace('),', '),\n'))
+    name: str
+    composition: dict[str, int]
+    model: int
+    ref_string: str
+    t_range: list[float]
+    data: list[list[float]]
 
 
 class db_reader():
@@ -45,8 +57,8 @@ class db_reader():
         """
         assert inp_data[:4] == b'gapy', 'Unknown data format'
         self._bin_data = inp_data
-        self._name_count = struct.unpack('<I', self._bin_data[4:8])[0]
-        species_names = self._bin_data[db_reader.header_len:(db_reader.header_len + self._name_count)].decode('ASCII').split(' ')
+        self._name_lengths = struct.unpack('<I', self._bin_data[4:8])[0]
+        species_names = split_on_space(self._bin_data, db_reader.header_len, db_reader.header_len + self._name_lengths)
         self._index = {s: i for i, s in enumerate(species_names)}
 
     @property
@@ -82,7 +94,7 @@ class db_reader():
         if name not in self._index:
             return None
 
-        head_offset = self._name_count + db_reader.header_len + self._index[name] * db_reader.header_len
+        head_offset = self._name_lengths + db_reader.header_len + self._index[name] * db_reader.header_len
 
         head = struct.unpack('<I4B', self._bin_data[head_offset:head_offset + db_reader.header_len])
 
