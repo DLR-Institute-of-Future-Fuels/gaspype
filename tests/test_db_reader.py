@@ -9,6 +9,7 @@ def test_db_reader():
     assert 'TEST' not in db
     assert db['HCl'].name == 'HCl'
     assert db['CH4'].composition == {'C': 1, 'H': 4}
+    assert db['C2H5OH'].composition == {'C': 2, 'H': 6, 'O': 1}
     assert db['H2O'].model == 9
 
     for species in db:
