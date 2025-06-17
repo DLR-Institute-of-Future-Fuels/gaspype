@@ -525,7 +525,9 @@ class fluid:
             return self.array_composition[..., [self.fs.species.index(k) if isinstance(k, str) else k for k in key]]
 
     def __iter__(self) -> Iterator[dict[str, float]]:
-        return iter({s: c for s, c in zip(self.fs.species, spa)} for spa in np.array(self.array_composition, ndmin=2))
+        assert len(self.shape) < 2, 'Cannot iterate over species with more than one dimension'
+        aec = self.array_composition.reshape(-1, len(self.fs.species))
+        return iter({s: c for s, c in zip(self.fs.species, aec[i, :])} for i in range(aec.shape[0]))
 
     def __repr__(self) -> str:
         if len(self.array_fractions.shape) == 1:
@@ -652,7 +654,9 @@ class elements:
             return self.array_elemental_composition[..., [self.fs.elements.index(k) if isinstance(k, str) else k for k in key]]
 
     def __iter__(self) -> Iterator[dict[str, float]]:
-        return iter({s: c for s, c in zip(self.fs.elements, spa)} for spa in np.array(self.array_elemental_composition, ndmin=2))
+        assert len(self.shape) < 2, 'Cannot iterate over elements with more than one dimension'
+        aec = self.array_elemental_composition.reshape(-1, len(self.fs.elements))
+        return iter({s: c for s, c in zip(self.fs.elements, aec[i, :])} for i in range(aec.shape[0]))
 
     def __repr__(self) -> str:
         if len(self.array_elemental_composition.shape) == 1:
