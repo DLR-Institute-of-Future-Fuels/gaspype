@@ -1,4 +1,6 @@
-from . import R, F, oxygen_partial_pressure, fluid, elements, FloatArray
+from .constants import R, F
+from ._operations import oxygen_partial_pressure
+from ._main import fluid, elements, FloatArray
 import numpy as np
 
 # Each O2 molecule is transported as two ions and each ion has a charged of 2e
