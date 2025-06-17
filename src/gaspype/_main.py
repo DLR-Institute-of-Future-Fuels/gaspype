@@ -7,10 +7,7 @@ from gaspype._phys_data import atomic_weights, db_reader
 import re
 import pkgutil
 from .constants import R, epsy, p0
-
-_Shape = tuple[int, ...]
-NDFloat = np.float64
-FloatArray = NDArray[NDFloat]
+from .typing import FloatArray, NDFloat, Shape
 
 T = TypeVar('T', 'fluid', 'elements')
 
@@ -209,6 +206,8 @@ class fluid:
         array_fractions (FloatArray): Array of the molar fractions of the species in the fluid
         total (FloatArray | float): Array of the sums of the molar amount of all species
         fs (fluid_system): Reference to the fluid_system used for this fluid
+        shape (_Shape): Shape of the fluid array
+        elements (list[str]): List of elements in the fluid_system
     """
 
     __array_priority__ = 100
@@ -219,7 +218,7 @@ class fluid:
         """Instantiates a fluid.
 
         Args:
-            composition: A dict of species names with their composition, e.g.:
+            composition: A dict of species names with their composition, e.g.
                 {'O2':0.5,'H2O':0.5} or a list/numpy-array of compositions.
                 The array can be multidimensional, the size of the last dimension
                 must match the number of species defined for the fluid_system.
@@ -258,7 +257,7 @@ class fluid:
         self.array_composition: FloatArray = comp_array
         self.total: FloatArray | float = np.sum(self.array_composition, axis=-1, dtype=NDFloat)
         self.array_fractions: FloatArray = self.array_composition / (np.expand_dims(self.total, -1) + epsy)
-        self.shape: _Shape = self.array_composition.shape[:-1]
+        self.shape: Shape = self.array_composition.shape[:-1]
         self.fs = fs
         self.array_elemental_composition: FloatArray = np.dot(self.array_composition, fs.array_species_elements)
         self.species = fs.species
@@ -596,7 +595,7 @@ class elements:
             assert composition.shape[-1] == len(fs.elements), f'composition.shape[-1] ({composition.shape[-1]}) must be {len(fs.elements)}'
             self.array_elemental_composition = composition
 
-        self.shape: _Shape = self.array_elemental_composition.shape[:-1]
+        self.shape: Shape = self.array_elemental_composition.shape[:-1]
         self.fs = fs
         self.elements = fs.elements
 
@@ -665,10 +664,6 @@ class elements:
             return ('Elements:\n' + ' ' * int(padding / 2) +
                     ''.join([(' ' * (padding - len(s))) + s for s in self.fs.elements]) +
                     '\nMols:\n' + self.array_elemental_composition.__repr__())
-
-
-# def _combine_index(index1: list[str], index2: list[str]) -> list[str]:
-#     return list(set(index1) | set(index2))
 
 
 def lookup(prop_array: FloatArray,
