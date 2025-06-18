@@ -43,7 +43,7 @@ ax.legend(fs.active_species)
 
 
 
-    <matplotlib.legend.Legend at 0x7f4066f83770>
+    <matplotlib.legend.Legend at 0x7fa7f6f4b8c0>
 
 
 
@@ -75,7 +75,7 @@ ax.legend(fs.active_species)
 
 
 
-    <matplotlib.legend.Legend at 0x7f4066e87110>
+    <matplotlib.legend.Legend at 0x7fa7f4d8b110>
 
 
 
