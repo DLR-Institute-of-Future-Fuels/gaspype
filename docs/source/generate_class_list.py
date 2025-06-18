@@ -17,8 +17,7 @@ def write_classes(f: TextIOWrapper, patterns: list[str], module_name: str, title
 
     classes = [
         name for name, obj in inspect.getmembers(module, inspect.isclass)
-        if (obj.__module__ == module_name and
-            any(fnmatch.fnmatch(name, pat) for pat in patterns if pat not in exclude) and
+        if (any(fnmatch.fnmatch(name, pat) for pat in patterns if pat not in exclude) and
             obj.__doc__ and '(Automatic generated stub)' not in obj.__doc__)
     ]
 
@@ -45,8 +44,7 @@ def write_functions(f: TextIOWrapper, patterns: list[str], module_name: str, tit
 
     functions = [
         name for name, obj in inspect.getmembers(module, inspect.isfunction)
-        if (obj.__module__ == module_name and
-            any(fnmatch.fnmatch(name, pat) for pat in patterns if pat not in exclude))
+        if (any(fnmatch.fnmatch(name, pat) for pat in patterns if pat not in exclude))
     ]
 
     if description:

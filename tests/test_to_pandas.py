@@ -22,6 +22,7 @@ def test_elements():
     df = pd.DataFrame(list(gp.elements(fl * np.array([1, 2, 3, 4]))))
     assert df.shape == (4, 2)
 
+
 def test_iter():
     fl = gp.fluid({'O2': 1, 'H2': 2, 'H2O': 3})
 

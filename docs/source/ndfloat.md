@@ -1,5 +1,5 @@
-# gaspype.NDFloat
+# gaspype.typing.NDFloat
 
 ```{eval-rst}
-.. autoclass:: gaspype.NDFloat
+.. autoclass:: gaspype.typing.NDFloat
 ```

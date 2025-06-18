@@ -1,5 +1,5 @@
-# gaspype.FloatArray
+# gaspype.typing.FloatArray
 
 ```{eval-rst}
-.. autoclass:: gaspype.FloatArray
+.. autoclass:: gaspype.typing.FloatArray
 ```
