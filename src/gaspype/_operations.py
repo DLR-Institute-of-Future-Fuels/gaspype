@@ -167,7 +167,7 @@ def equilibrium(f: fluid | elements, t: float | FloatArray, p: float = 1e5) -> f
                 # the constant np.linalg.pinv(a) can be precomputed for each fs.
                 return np.dot(np.linalg.pinv(matrix), array_elemental_composition)
 
-            print('-->', f.array_elemental_composition.shape, f.fs.array_species_elements.transpose().shape)
+            # print('-->', f.array_elemental_composition.shape, f.fs.array_species_elements.transpose().shape)
             composition = np.apply_along_axis(linalg_lstsq, -1, f.array_elemental_composition, f.fs.array_species_elements.transpose())
             return fluid(composition, f.fs)
 
@@ -176,12 +176,12 @@ def equilibrium(f: fluid | elements, t: float | FloatArray, p: float = 1e5) -> f
         assert f.shape == tuple(), 'Multidimensional temperature can currently only used for 0D fluids'
         t_composition = np.zeros(t.shape + (f.fs.array_species_elements.shape[0],))
         for t_index in np.ndindex(t.shape):
-            t_composition[t_index] = _equilibrium_solver(f.fs, f.array_elemental_composition, t[t_index], p)
+            t_composition[t_index] = _equilibrium_solver(f.fs, f.array_elemental_composition, float(t[t_index]), p)
         return fluid(t_composition, f.fs)
     else:
         composition = np.ones(f.shape + (len(f.fs.species),), dtype=float)
         for index in np.ndindex(f.shape):
-            #print(composition.shape, index, _equilibrium(f.fs, f._element_composition[index], t, p))
+            # print(composition.shape, index, _equilibrium(f.fs, f._element_composition[index], t, p))
             composition[index] = _equilibrium_solver(f.fs, f.array_elemental_composition[index], t, p)
         return fluid(composition, f.fs)
 
