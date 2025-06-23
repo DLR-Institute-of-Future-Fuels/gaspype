@@ -13,8 +13,8 @@ Example usage:
 """
 
 from ._main import species, fluid_system, fluid, elements
-from ._operations import set_solver, get_solver, equilibrium
 from ._operations import stack, concat, carbon_activity, oxygen_partial_pressure
+from ._solver import set_solver, get_solver, equilibrium
 
 __all__ = [
     'species', 'fluid_system', 'fluid', 'elements',
