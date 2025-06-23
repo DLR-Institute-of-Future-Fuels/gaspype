@@ -80,7 +80,8 @@ def equilibrium_eq(fs: fluid_system, element_composition: FloatArray, t: float, 
     # Pressure corrected log equilibrium constants
     bp = b - np.sum(a * np.log(p / p0), axis=1)
 
-    logn_start = np.ones(el_matrix.shape[1]) * 0.1
+    # Calculating the maximum possible amount for each species based on the elements
+    logn_start = np.min(element_norm / (fs.array_species_elements + epsy), axis=1)
 
     def residuals(logn: FloatArray):  # type: ignore
         n = np.exp(logn)
