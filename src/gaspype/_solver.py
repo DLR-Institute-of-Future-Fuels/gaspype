@@ -69,6 +69,7 @@ def equilibrium_eq(fs: fluid_system, element_composition: FloatArray, t: float, 
     """Calculate the equilibrium composition of a fluid based on equilibrium equations"""
     el_max = np.max(element_composition)
     element_norm = element_composition / el_max
+    element_norm_log = np.log(element_norm + epsy)
 
     a = fs.array_stoichiometric_coefficients
     a_sum = np.sum(a)
@@ -81,35 +82,44 @@ def equilibrium_eq(fs: fluid_system, element_composition: FloatArray, t: float, 
     bp = b - np.sum(a * np.log(p / p0), axis=1)
 
     # Calculating the maximum possible amount for each species based on the elements
-    logn_start = np.min(element_norm / (fs.array_species_elements + epsy), axis=1)
+    species_max = np.min(element_norm / (fs.array_species_elements + epsy), axis=1)
+    logn_start = np.log(species_max + epsy)
 
-    def residuals(logn: FloatArray):  # type: ignore
+    # global count
+    # count = 0
+
+    def residuals(logn: FloatArray) -> tuple[FloatArray, FloatArray]:
+        # global count
+        # count += 1
+        # print('------', count)
+        # assert count < 100
         n = np.exp(logn)
         n_sum = np.sum(n)
 
         # Residuals from equilibrium equations:
-        eq_resid = np.dot(a, logn - np.log(n_sum)) - bp
+        resid_eq = np.dot(a, logn - np.log(n_sum)) - bp
 
-        # Derivative:
+        # Jacobian:
         j_eq = a - a_sum * n / n_sum
 
         # Residuals from elemental balance:
-        el_error = np.dot(el_matrix, n) - element_norm
-        ab_resid = np.log1p(el_error)
+        el_error = np.dot(el_matrix, n)
+        resid_ab = np.log(el_error) - element_norm_log
 
-        # Derivative:
-        j_ab = el_matrix * n / np.expand_dims(el_error + 1, axis=1)
+        # Jacobian
+        j_ab = el_matrix * n / el_error[:, np.newaxis]
 
-        return (np.hstack([eq_resid, ab_resid]), np.concatenate([j_eq, j_ab], axis=0))
+        return (np.hstack([resid_eq, resid_ab]), np.concatenate([j_eq, j_ab], axis=0))
 
-    ret = root(residuals, logn_start, jac=True, tol=1e-30)
+    ret = root(residuals, logn_start, jac=True, tol=1e-10)
     n = np.exp(np.array(ret['x'], dtype=NDFloat))
+    # print(ret)
 
     return n * el_max
 
 
 def equilibrium(f: fluid | elements, t: float | FloatArray, p: float = 1e5) -> fluid:
-    """Calculate the equilibrium composition of a fluid at a given temperature and pressure"
+    """Calculate the isobaric equilibrium composition of a fluid at a given temperature and pressure"
 
     Args:
         f: Fluid or elements object
