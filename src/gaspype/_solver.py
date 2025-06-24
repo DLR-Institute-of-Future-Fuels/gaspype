@@ -88,6 +88,8 @@ def equilibrium_eq(fs: fluid_system, element_composition: FloatArray, t: float, 
     # global count
     # count = 0
 
+    weighting = 100
+
     def residuals(logn: FloatArray) -> tuple[FloatArray, FloatArray]:
         # global count
         # count += 1
@@ -103,11 +105,13 @@ def equilibrium_eq(fs: fluid_system, element_composition: FloatArray, t: float, 
         j_eq = a - a_sum * n / n_sum
 
         # Residuals from elemental balance:
-        el_error = np.dot(el_matrix, n)
-        resid_ab = np.log(el_error) - element_norm_log
+        el_sum = np.dot(el_matrix, n)
+        resid_ab = weighting * (np.log(el_sum) - element_norm_log)
+
+        # print(el_sum, element_norm)
 
         # Jacobian
-        j_ab = el_matrix * n / el_error[:, np.newaxis]
+        j_ab = weighting * el_matrix * n / el_sum[:, np.newaxis]
 
         return (np.hstack([resid_eq, resid_ab]), np.concatenate([j_eq, j_ab], axis=0))
 
