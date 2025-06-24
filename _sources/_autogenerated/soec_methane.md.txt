@@ -56,7 +56,7 @@ ax.legend(air_side.species)
 
 
 
-    <matplotlib.legend.Legend at 0x7fac5f71a490>
+    <matplotlib.legend.Legend at 0x7fb7b43ee490>
 
 
 
@@ -95,7 +95,7 @@ ax.legend(['o2_fuel_side', 'o2_air_side'])
 
 
 
-    <matplotlib.legend.Legend at 0x7fac5b41afd0>
+    <matplotlib.legend.Legend at 0x7fb7b0022e90>
 
 
 
@@ -177,7 +177,7 @@ ax.plot(z_position, node_current, '-')
 
 
 
-    [<matplotlib.lines.Line2D at 0x7fac5b273c50>]
+    [<matplotlib.lines.Line2D at 0x7fb7afe7bc50>]
 
 
 
