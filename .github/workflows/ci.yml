@@ -27,6 +27,13 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install -e .[dev]
+        if [ "${{ matrix.python-version }}" = "3.13" ]; then
+          python -m pip install cffconvert
+        fi
+
+    - name: Validate CITATION.cff
+      if: ${{ matrix.python-version == '3.13' }}
+      run: cffconvert --validate
 
     - name: Prepare data and compile thermo database
       run: |
