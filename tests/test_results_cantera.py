@@ -1,7 +1,8 @@
 import gaspype as gp
 import numpy as np
 # import pytest
-import cantera as ct  # type: ignore
+import cantera as ct
+from gaspype.typing import NDFloat
 
 
 def test_equilibrium_cantera():
@@ -16,7 +17,7 @@ def test_equilibrium_cantera():
 
     composition = gp.fluid({'H2': 1}, fs) +\
         gp.fluid({'CH4': 1}, fs) * np.linspace(0, 0.05, 30) +\
-        gp.fluid({'O2': 1}, fs) * np.expand_dims(np.linspace(0, 0.5, 30), axis=1)
+        gp.fluid({'O2': 1}, fs) * np.linspace(0, 0.5, 30)[:, None]
 
     t = 1495 + 273.15  # K
     p = 1e5  # Pa
@@ -40,10 +41,12 @@ def test_equilibrium_cantera():
         #if flow1.X[indeces][0] > 0.01:
         #    print(flow1.X[indeces])
 
-    ct_result_array = np.stack(ct_results)  # type: ignore
+    ct_result_array = np.stack(ct_results, dtype=NDFloat)  # type: ignore
 
-    max_deviation = np.max(np.abs((gp_result_array - ct_result_array)))
-    mean_deviation = np.mean(np.abs((gp_result_array - ct_result_array)))
+    deviations = np.abs(gp_result_array - ct_result_array)
 
-    assert max_deviation < 0.04
-    assert mean_deviation < 2e-4
+    for dev, gp_comp_result, ct_comp_result in zip(deviations, gp_result_array, ct_result_array):
+        print(f"Composition: {gp_comp_result} / {ct_comp_result}")
+        assert np.all(dev < 0.04), f"Deviateion: {dev}"
+
+    assert np.mean(deviations) < 2e-4
