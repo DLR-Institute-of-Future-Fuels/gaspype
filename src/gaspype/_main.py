@@ -120,9 +120,9 @@ class fluid_system:
             # print(f'Warning: temperature ({T}) out of range for {s}')
 
         self.elements: list[str] = sorted(list(set(k for ac in element_compositions for k in ac.keys())))
-        self.array_species_elements = np.array([[ec[el] if el in ec else 0.0 for el in self.elements] for ec in element_compositions])
+        self.array_species_elements: FloatArray = np.array([[ec[el] if el in ec else 0.0 for el in self.elements] for ec in element_compositions])
 
-        self.array_atomic_mass = np.array([atomic_weights[el] for el in self.elements]) * 1e-3  # kg/mol
+        self.array_atomic_mass: FloatArray = np.array([atomic_weights[el] for el in self.elements]) * 1e-3  # kg/mol
         self.array_molar_mass: FloatArray = np.sum(self.array_atomic_mass * self.array_species_elements, axis=-1)  # kg/mol
 
         self.array_stoichiometric_coefficients: FloatArray = np.array(null_space(self.array_species_elements.T), dtype=NDFloat).T
