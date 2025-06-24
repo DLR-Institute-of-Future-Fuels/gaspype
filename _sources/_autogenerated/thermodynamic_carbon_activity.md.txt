@@ -70,7 +70,7 @@ ax.legend([f'{tc} °C' for tc in t_range])
 
 
 
-    <matplotlib.legend.Legend at 0x7ff5897bc440>
+    <matplotlib.legend.Legend at 0x7f21d0776e40>
 
 
 

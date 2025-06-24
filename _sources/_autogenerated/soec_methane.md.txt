@@ -56,7 +56,7 @@ ax.legend(air_side.species)
 
 
 
-    <matplotlib.legend.Legend at 0x7fa0df2bf250>
+    <matplotlib.legend.Legend at 0x7fac5f71a490>
 
 
 
@@ -95,7 +95,7 @@ ax.legend(['o2_fuel_side', 'o2_air_side'])
 
 
 
-    <matplotlib.legend.Legend at 0x7fa0df1abd90>
+    <matplotlib.legend.Legend at 0x7fac5b41afd0>
 
 
 
@@ -124,7 +124,7 @@ ax.plot(conversion, nernst_voltage, '-')
 print(np.min(nernst_voltage))
 ```
 
-    0.8409432603445403
+    0.8409432603445915
 
 
 
@@ -177,7 +177,7 @@ ax.plot(z_position, node_current, '-')
 
 
 
-    [<matplotlib.lines.Line2D at 0x7fa0dad911d0>]
+    [<matplotlib.lines.Line2D at 0x7fac5b273c50>]
 
 
 
