@@ -1,6 +1,7 @@
 import pytest
 import gaspype as gp
 
+
 def test_calculation_cold():
     # Testing a non-equilibrium case. Result is only
     # determined by stoichiometry.
