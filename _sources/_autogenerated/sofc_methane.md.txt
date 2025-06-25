@@ -1,8 +1,8 @@
-# SOEC with Methane
+# SOFC with Methane
 
-This example shows a 1D isothermal SOEC (Solid oxide electrolyzer cell) model.
+This example shows a 1D isothermal SOFC (Solid oxide fuel cell) model.
 
-The operating parameters chosen here are not necessary realistic
+The operating parameters chosen here are not necessary realistic.
 
 
 ```python
@@ -19,15 +19,15 @@ side in counter flow along the fuel flow direction:
 ```python
 fuel_utilization = 0.90
 air_utilization = 0.5
-t = 800 + 273.15 #K
-p = 1e5 #Pa
+t = 800 + 273.15  # K
+p = 1e5  # Pa
 
 fs = gp.fluid_system('H2, H2O, O2, CH4, CO, CO2')
 feed_fuel = gp.fluid({'CH4': 1, 'H2O': 0.1}, fs)
 
 o2_full_conv = np.sum(gp.elements(feed_fuel)[['H', 'C' ,'O']] * [1/4, 1, -1/2])
 
-feed_air = gp.fluid({'O2': 1, 'N2': 4}) * o2_full_conv / air_utilization
+feed_air = gp.fluid({'O2': 1, 'N2': 4}) * o2_full_conv * fuel_utilization / air_utilization
 
 conversion = np.linspace(0, fuel_utilization, 32)
 perm_oxygen = o2_full_conv * conversion * gp.fluid({'O2': 1})
@@ -56,19 +56,19 @@ ax.legend(air_side.species)
 
 
 
-    <matplotlib.legend.Legend at 0x7fb7b43ee490>
+    <matplotlib.legend.Legend at 0x7fda07922490>
 
 
 
 
     
-![png](soec_methane_files/soec_methane_5_1.png)
+![png](sofc_methane_files/sofc_methane_5_1.png)
     
 
 
 
     
-![png](soec_methane_files/soec_methane_5_2.png)
+![png](sofc_methane_files/sofc_methane_5_2.png)
     
 
 
@@ -95,13 +95,13 @@ ax.legend(['o2_fuel_side', 'o2_air_side'])
 
 
 
-    <matplotlib.legend.Legend at 0x7fb7b0022e90>
+    <matplotlib.legend.Legend at 0x7fda03622fd0>
 
 
 
 
     
-![png](soec_methane_files/soec_methane_9_1.png)
+![png](sofc_methane_files/sofc_methane_9_1.png)
     
 
 
@@ -113,7 +113,7 @@ z_O2 = 4
 nernst_voltage = R*t / (z_O2*F) * np.log(o2_air_side/o2_fuel_side)
 ```
 
-#Plot nernst potential:
+Plot nernst potential:
 
 
 ```python
@@ -124,12 +124,12 @@ ax.plot(conversion, nernst_voltage, '-')
 print(np.min(nernst_voltage))
 ```
 
-    0.8409432603445915
+    0.8389952262511841
 
 
 
     
-![png](soec_methane_files/soec_methane_13_1.png)
+![png](sofc_methane_files/sofc_methane_13_1.png)
     
 
 
@@ -145,8 +145,8 @@ physical distance between the nodes (**dz**) must be calculated:
 
 
 ```python
-cell_voltage = 0.77 #V
-ASR = 0.2 #Ohm*cm²
+cell_voltage = 0.77  # V
+ASR = 0.2  # Ohm*cm²
 
 node_current = (nernst_voltage - cell_voltage) / ASR  # mA/cm² (Current density at each node)
 
@@ -159,7 +159,7 @@ terminal_current = np.sum(current * dz) # mA/cm² (Total cell current per cell a
 print(f'Terminal current: {terminal_current:.2f} A/cm²')
 ```
 
-    Terminal current: 0.95 A/cm²
+    Terminal current: 0.94 A/cm²
 
 
 Plot the local current density:
@@ -177,12 +177,12 @@ ax.plot(z_position, node_current, '-')
 
 
 
-    [<matplotlib.lines.Line2D at 0x7fb7afe7bc50>]
+    [<matplotlib.lines.Line2D at 0x7fda0347bc50>]
 
 
 
 
     
-![png](soec_methane_files/soec_methane_17_1.png)
+![png](sofc_methane_files/sofc_methane_17_1.png)
     
 

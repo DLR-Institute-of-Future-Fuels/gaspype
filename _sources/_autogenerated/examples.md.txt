@@ -4,8 +4,9 @@
 :maxdepth: 1
 methane_mixtures
 thermodynamic_carbon_activity
-soec_methane
+soec_syngas
 sulfur_oxygen_equalibrium
+sofc_methane
 ```
 
 ## Download Jupyter Notebooks
@@ -14,9 +15,11 @@ sulfur_oxygen_equalibrium
 
 - [thermodynamic_carbon_activity.ipynb](thermodynamic_carbon_activity.ipynb)
 
-- [soec_methane.ipynb](soec_methane.ipynb)
+- [soec_syngas.ipynb](soec_syngas.ipynb)
 
 - [sulfur_oxygen_equalibrium.ipynb](sulfur_oxygen_equalibrium.ipynb)
+
+- [sofc_methane.ipynb](sofc_methane.ipynb)
 
 ## Download plain python files
 
@@ -24,7 +27,9 @@ sulfur_oxygen_equalibrium
 
 - [thermodynamic_carbon_activity.py](thermodynamic_carbon_activity.py)
 
-- [soec_methane.py](soec_methane.py)
+- [soec_syngas.py](soec_syngas.py)
 
 - [sulfur_oxygen_equalibrium.py](sulfur_oxygen_equalibrium.py)
+
+- [sofc_methane.py](sofc_methane.py)
 
