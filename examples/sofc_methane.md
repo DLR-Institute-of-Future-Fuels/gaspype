@@ -1,8 +1,8 @@
-# SOEC with Methane
+# SOFC with Methane
 
-This example shows a 1D isothermal SOEC (Solid oxide electrolyzer cell) model.
+This example shows a 1D isothermal SOFC (Solid oxide fuel cell) model.
 
-The operating parameters chosen here are not necessary realistic
+The operating parameters chosen here are not necessary realistic.
 
 ```python
 import gaspype as gp
@@ -16,15 +16,15 @@ side in counter flow along the fuel flow direction:
 ```python
 fuel_utilization = 0.90
 air_utilization = 0.5
-t = 800 + 273.15 #K
-p = 1e5 #Pa
+t = 800 + 273.15  # K
+p = 1e5  # Pa
 
 fs = gp.fluid_system('H2, H2O, O2, CH4, CO, CO2')
 feed_fuel = gp.fluid({'CH4': 1, 'H2O': 0.1}, fs)
 
 o2_full_conv = np.sum(gp.elements(feed_fuel)[['H', 'C' ,'O']] * [1/4, 1, -1/2])
 
-feed_air = gp.fluid({'O2': 1, 'N2': 4}) * o2_full_conv / air_utilization
+feed_air = gp.fluid({'O2': 1, 'N2': 4}) * o2_full_conv * fuel_utilization / air_utilization
 
 conversion = np.linspace(0, fuel_utilization, 32)
 perm_oxygen = o2_full_conv * conversion * gp.fluid({'O2': 1})
@@ -70,7 +70,7 @@ z_O2 = 4
 nernst_voltage = R*t / (z_O2*F) * np.log(o2_air_side/o2_fuel_side)
 ```
 
-#Plot nernst potential:
+Plot nernst potential:
 ```python
 fig, ax = plt.subplots()
 ax.set_xlabel("Conversion")
@@ -89,8 +89,8 @@ To calculate the local current density (**node_current**) as well
 as the total cell current (**terminal_current**) the (relative)
 physical distance between the nodes (**dz**) must be calculated:
 ```python
-cell_voltage = 0.77 #V
-ASR = 0.2 #Ohm*cm²
+cell_voltage = 0.77  # V
+ASR = 0.2  # Ohm*cm²
 
 node_current = (nernst_voltage - cell_voltage) / ASR  # mA/cm² (Current density at each node)
 
