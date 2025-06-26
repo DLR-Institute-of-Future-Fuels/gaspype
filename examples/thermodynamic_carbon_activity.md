@@ -66,3 +66,25 @@ ax.plot(ratio, carbon_activity.T)
 ax.hlines(1, np.min(ratio), np.max(ratio), colors='k', linestyles='dashed')
 ax.legend([f'{tc} °C' for tc in t_range])
 ```
+
+Let's do the equilibrium calculation for methane CO2 mixtures as well:
+
+
+```python
+fl_co2 = gp.fluid({'CH4': 1}, fs) + ratio * gp.fluid({'CO2': 1}, fs)
+carbon_activity_co2 = np.vstack([partial_c_activity(fl_co2, tc + 273.15, p) for tc in t_range])
+```
+
+And plot carbon activities over the CO2 to CH4 ratio:
+
+
+```python
+fig, ax = plt.subplots(figsize=(6, 4), dpi=120)
+ax.set_xlabel("CO2/CH4")
+ax.set_ylabel("carbon activity")
+ax.set_ylim(1e-1, 1e3)
+ax.set_yscale('log')
+ax.plot(ratio, carbon_activity_co2.T)
+ax.hlines(1, np.min(ratio), np.max(ratio), colors='k', linestyles='dashed')
+ax.legend([f'{tc} °C' for tc in t_range])
+```
