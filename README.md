@@ -1,20 +1,21 @@
 # Gaspype
-The python package provides an performant library for thermodynamic calculations
+The python package provides a performant library for thermodynamic calculations
 like equilibrium reactions for several hundred gas species and their mixtures -
 written in Python/Numpy.
 
 Species are treated as ideal gases. Therefore the application is limited to moderate
 pressures or high temperature applications.
 
-Its designed with goal to be portable to Numpy-style GPU frameworks like JAX and PyTorch.
+It is designed with goal to be portable to Numpy-style GPU frameworks like JAX and PyTorch.
 
-## Key features
-- Tensor operations to prevent bottlenecks by the python interpreter
-- Immutable types
-- Elegant pythonic interface
-- Great readable and compact syntax when using this package
-- Good usability in Jupyter Notebook
-- High performance for multidimensional fluid arrays
+## Key Features
+
+- Pure Python implementation with NumPy vectorization for high performance
+- Immutable types and comprehensive type hints for reliability
+- Intuitive, Pythonic API for both rapid prototyping and complex multidimensional models
+- Ready for Jupyter Notebook and educational use
+- Designed for future GPU support (JAX, PyTorch)
+- Ships with a comprehensive NASA9-based species database
 
 ## Installation
 Installation with pip:
