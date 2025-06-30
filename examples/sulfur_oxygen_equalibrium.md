@@ -32,8 +32,11 @@ el = gp.elements({'S': 1}, fs) + oxygen_ratio * gp.elements({'O': 1}, fs)
 
 composition = gp.equilibrium(el, 800+273.15, 1e4)
 
-plt.plot(oxygen_ratio, composition.get_x())
-plt.legend(composition.species)
+fig, ax = plt.subplots()
+ax.set_xlabel("Oxygen to sulfur ratio")
+ax.set_ylabel("Molar fraction")
+ax.plot(oxygen_ratio, composition.get_x(), '-')
+ax.legend(composition.species)
 ```
 
 Calculation of the molar equilibrium fractions for sulfur and oxygen depending on temperature in °C:
@@ -47,6 +50,9 @@ el = gp.elements({'S': 1, 'O':2.5}, fs)
 t_range = np.linspace(500, 1300, num=32)
 composition = gp.equilibrium(el, t_range+273.15, 1e4)
 
-plt.plot(t_range, composition.get_x())
-plt.legend(composition.species)
+fig, ax = plt.subplots()
+ax.set_xlabel("Temperature / °C")
+ax.set_ylabel("Molar fraction")
+ax.plot(t_range, composition.get_x(), '-')
+ax.legend(composition.species)
 ```
