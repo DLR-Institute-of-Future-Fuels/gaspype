@@ -69,7 +69,7 @@ ax.legend(['o2_fuel_side', 'o2_air_side'])
 
 The high oxygen partial pressure at the inlet is in reality lower.
 The assumption that gas inter-diffusion in the flow direction is slower
-than the gas velocity does not hold this very high gradient. However
+than the gas velocity does not hold at this very high gradient. However
 often the oxygen partial pressure is still to high to prevent oxidation of the
 cell/electrode. This can be effectively prevented by recycling small amounts of
 the output gas.
