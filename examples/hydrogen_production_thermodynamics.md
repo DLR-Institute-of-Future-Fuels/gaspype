@@ -7,8 +7,6 @@ the Heat of Evaporation for water.
 
 ```python
 import gaspype as gp
-#import numpy as np
-#import matplotlib.pyplot as plt
 
 lhv = gp.fluid({'H2': 1, 'O2': 1/2, 'H2O': -1}).get_H(25 + 273.15)
 dh_v = 43990  # J/mol  (heat of evaporation for water @ 25 °C)
