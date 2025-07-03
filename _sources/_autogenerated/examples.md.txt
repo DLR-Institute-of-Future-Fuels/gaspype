@@ -6,6 +6,7 @@ methane_mixtures
 thermodynamic_carbon_activity
 soec_syngas
 sulfur_oxygen_equalibrium
+hydrogen_production_thermodynamics
 sofc_methane
 ```
 
@@ -19,6 +20,8 @@ sofc_methane
 
 - [sulfur_oxygen_equalibrium.ipynb](sulfur_oxygen_equalibrium.ipynb)
 
+- [hydrogen_production_thermodynamics.ipynb](hydrogen_production_thermodynamics.ipynb)
+
 - [sofc_methane.ipynb](sofc_methane.ipynb)
 
 ## Download plain python files
@@ -30,6 +33,8 @@ sofc_methane
 - [soec_syngas.py](soec_syngas.py)
 
 - [sulfur_oxygen_equalibrium.py](sulfur_oxygen_equalibrium.py)
+
+- [hydrogen_production_thermodynamics.py](hydrogen_production_thermodynamics.py)
 
 - [sofc_methane.py](sofc_methane.py)
 
