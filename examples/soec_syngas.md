@@ -3,8 +3,8 @@
 This example shows a 1D isothermal SOEC (Solid oxide electrolyzer cell) model.
 Converting CO2 and H2 into syngas.
 
-The operating parameters chosen here are not necessary realistic. Under the example
-condition the formation of solid carbon is very likely.
+The operating parameters chosen here are not necessarily realistic. For example,
+a utilization of 0.95 causes issues with the formation of solid carbon.
 
 ```python
 import gaspype as gp
@@ -13,8 +13,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 ```
 
-Calculation of the local equilibrium compositions on the fuel and air
-side in counter flow along the fuel flow direction:
+Calculate equilibrium compositions for fuel and air sides in counter flow
+along the fuel flow direction:
 ```python
 utilization = 0.95
 air_dilution = 0.2
@@ -66,6 +66,14 @@ ax.plot(conversion, np.stack([o2_fuel_side, o2_air_side], axis=1), '-')
 ax.legend(['o2_fuel_side', 'o2_air_side'])
 ```
 
+
+The high oxygen partial pressure at the inlet is in reality lower.
+The assumption that gas inter-diffusion in the flow direction is slower
+than the gas velocity does not hold this very high gradient. However
+often the oxygen partial pressure is still to high to prevent oxidation of the
+cell/electrode. This can be effectively prevented by recycling small amounts of
+the output gas.
+
 Calculation of the local nernst potential between fuel and air side:
 ```python
 z_O2 = 4
@@ -94,13 +102,13 @@ physical distance between the nodes (**dz**) must be calculated:
 cell_voltage = 1.3  # V
 ASR = 0.2  # Ohm*cm²
 
-node_current = (nernst_voltage - cell_voltage) / ASR  # mA/cm² (Current density at each node)
+node_current = (nernst_voltage - cell_voltage) / ASR  # A/cm² (Current density at each node)
 
-current = (node_current[1:] + node_current[:-1]) / 2  # mA/cm² (Average current density between the nodes)
+current = (node_current[1:] + node_current[:-1]) / 2  # A/cm² (Average current density between the nodes)
 
 dz = 1/current / np.sum(1/current)  # Relative distance between each node
 
-terminal_current = np.sum(current * dz) # mA/cm² (Total cell current per cell area)
+terminal_current = np.sum(current * dz) # A/cm² (Total cell current per cell area)
 
 print(f'Terminal current: {terminal_current:.2f} A/cm²')
 ```
