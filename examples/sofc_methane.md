@@ -2,7 +2,10 @@
 
 This example shows a 1D isothermal SOFC (Solid oxide fuel cell) model.
 
-The operating parameters chosen here are not necessary realistic.
+The operating parameters chosen here are not necessarily realistic due to
+constraints not included in this model. Under the example condition the
+formation of solid carbon is for example very likely. A pre-reforming step
+is typically applied when operating on methane.
 
 ```python
 import gaspype as gp
@@ -11,8 +14,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 ```
 
-Calculation of the local equilibrium compositions on the fuel and air
-side in counter flow along the fuel flow direction:
+Calculate equilibrium compositions for fuel and air sides
+in counter flow along the fuel flow direction:
 ```python
 fuel_utilization = 0.90
 air_utilization = 0.5
@@ -66,7 +69,7 @@ ax.legend(['o2_fuel_side', 'o2_air_side'])
 
 Calculation of the local nernst potential between fuel and air side:
 ```python
-z_O2 = 4
+z_O2 = 4  # Number of electrons transferred per O2 molecule
 nernst_voltage = R*t / (z_O2*F) * np.log(o2_air_side/o2_fuel_side)
 ```
 
@@ -92,13 +95,13 @@ physical distance between the nodes (**dz**) must be calculated:
 cell_voltage = 0.77  # V
 ASR = 0.2  # Ohm*cm²
 
-node_current = (nernst_voltage - cell_voltage) / ASR  # mA/cm² (Current density at each node)
+node_current = (nernst_voltage - cell_voltage) / ASR  # A/cm² (Current density at each node)
 
-current = (node_current[1:] + node_current[:-1]) / 2  # mA/cm² (Average current density between the nodes)
+current = (node_current[1:] + node_current[:-1]) / 2  # A/cm² (Average current density between the nodes)
 
 dz = 1/current / np.sum(1/current)  # Relative distance between each node
 
-terminal_current = np.sum(current * dz) # mA/cm² (Total cell current per cell area)
+terminal_current = np.sum(current * dz) # A/cm² (Total cell current per cell area)
 
 print(f'Terminal current: {terminal_current:.2f} A/cm²')
 ```
