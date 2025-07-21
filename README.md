@@ -1,12 +1,12 @@
 # Gaspype
-The python package provides a performant library for thermodynamic calculations
+The Python package provides a performant library for thermodynamic calculations
 like equilibrium reactions for several hundred gas species and their mixtures -
-written in Python/Numpy.
+written in Python/NumPy.
 
 Species are treated as ideal gases. Therefore the application is limited to moderate
 pressures or high temperature applications.
 
-It is designed with goal to be portable to Numpy-style GPU frameworks like JAX and PyTorch.
+It is designed with goal to be portable to NumPy-style GPU frameworks like JAX and PyTorch.
 
 ## Key Features
 
@@ -53,7 +53,7 @@ mass = fl.get_mass()
 gas_volume = fl.get_v(t=800+273.15, p=1e5)
 ```
 
-The arguments can be provided as numpy-arrays:
+The arguments can be provided as NumPy-arrays:
 
 ``` python
 import numpy as np
@@ -64,7 +64,7 @@ fl.get_density(t=t_range, p=1e5)
 array([0.10122906, 0.09574625, 0.09082685, 0.08638827, 0.08236328])
 ```
 A ```fluid``` object can have multiple compositions. A multidimensional ```fluid``` object
-can be created for example by multiplication with a numpy array:
+can be created for example by multiplication with a NumPy array:
 
 ``` python
 fl2 = gp.fluid({'H2O': 1, 'N2': 2}) + \
@@ -221,8 +221,8 @@ cd gaspype
 It's recommended to setup an venv:
 
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+python -m venv .venv
+source .venv/bin/activate  # On Windows use `.venv\Scripts\activate`
 ```
 
 Install the package and dev-dependencies while keeping the package files
