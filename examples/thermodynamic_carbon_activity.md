@@ -1,7 +1,7 @@
 # Carbon Activity
 
-This example shows the equilibrium calculation for solid carbon.
-
+This example shows the calculation of the carbon activity for methane mixtures
+in thermodynamic equilibrium.
 
 ```python
 import gaspype as gp
