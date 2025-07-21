@@ -25,8 +25,8 @@ Equilibrium calculation for methane steam mixtures:
 ```python
 ratio = np.linspace(0.01, 1.5, num=64)
 
-el = gp.fluid({'CH4': 1}, fs) + ratio * gp.fluid({'H2O': 1}, fs)
-equilibrium_h2o = gp.equilibrium(el, t, p)
+fl = gp.fluid({'CH4': 1}, fs) + ratio * gp.fluid({'H2O': 1}, fs)
+equilibrium_h2o = gp.equilibrium(fl, t, p)
 ```
 
 
@@ -44,8 +44,8 @@ Equilibrium calculation for methane CO2 mixtures:
 
 
 ```python
-el = gp.fluid({'CH4': 1}, fs) + ratio * gp.fluid({'CO2': 1}, fs)
-equilibrium_co2 = gp.equilibrium(el, t, p)
+fl = gp.fluid({'CH4': 1}, fs) + ratio * gp.fluid({'CO2': 1}, fs)
+equilibrium_co2 = gp.equilibrium(fl, t, p)
 ```
 
 
