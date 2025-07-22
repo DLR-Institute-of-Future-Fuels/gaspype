@@ -1,7 +1,7 @@
 # SOEC Co-Electrolysis
 
-This example shows a 1D isothermal SOEC (Solid oxide electrolyzer cell) model.
-Converting CO2 and H2 into syngas.
+This example shows a 1D isothermal SOEC (Solid oxide electrolyzer cell) model for
+converting carbon dioxide and steam into syngas.
 
 The operating parameters chosen here are not necessarily realistic. For example,
 a utilization of 0.95 causes issues with the formation of solid carbon.
@@ -66,13 +66,12 @@ ax.plot(conversion, np.stack([o2_fuel_side, o2_air_side], axis=1), '-')
 ax.legend(['o2_fuel_side', 'o2_air_side'])
 ```
 
-
 The high oxygen partial pressure at the inlet is in reality lower.
 The assumption that gas inter-diffusion in the flow direction is slower
 than the gas velocity does not hold at this very high gradient. However
 often the oxygen partial pressure is still to high to prevent oxidation of the
 cell/electrode. This can be effectively prevented by recycling small amounts of
-the output gas.
+the hydrogen riche output gas.
 
 Calculation of the local nernst potential between fuel and air side:
 ```python
