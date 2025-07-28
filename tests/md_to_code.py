@@ -96,6 +96,7 @@ def segments_to_test(segments: Iterable[markdown_segment], script_language: str 
                 ret_block_flag = lines[-1] if (not re.match(r'^[^(]*=', lines[-1]) and
                                                not lines[-1].startswith('import ') and
                                                not lines[-1].startswith('from ') and
+                                               not lines[-1].startswith('print(') and
                                                not lines[-1].startswith(' ')) else None
                 # print('Last line: ', ret_block_flag, '-----------', lines[-1])
 
