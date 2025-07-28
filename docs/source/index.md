@@ -3,6 +3,7 @@
 :hidden:
 api/index
 api/examples
+repo
 ```
 
 ```{include} ../../README.md
