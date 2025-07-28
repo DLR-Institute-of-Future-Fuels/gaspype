@@ -10,6 +10,10 @@ jobs:
     name: Build and publish
     runs-on: ubuntu-latest
 
+    environment:
+      name: pypi
+      url: https://pypi.org/project/${{ github.event.repository.name }}/
+
     steps:
       - uses: actions/checkout@v3
 
