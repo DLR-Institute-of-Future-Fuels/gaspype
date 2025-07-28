@@ -123,11 +123,19 @@ being cell and stack size independent. The quotient of both is often referred to
 LHV based DC efficiency.
 
 ```python
-
 dc_power = cell_voltage * terminal_current  # W/cm²
-
-lhv = gp.fluid({'CH4': 1, 'H2O': -2, 'CO2': -1}).get_H(25 + 273.15)  # LHV of methane
-efficiency = dc_power / lhv  # LHV based DC efficiency
-
 print(f"DC power: {dc_power:.2f} W/cm²")
+
+lhv = gp.fluid({'CH4': 1, 'H2O': -2, 'CO2': -1}).get_H(25 + 273.15)  # J/mol (LHV of methane)
+
+# LHV based chemical input power:
+lhv_power = lhv * terminal_current / (2 * z_O2 * F)  # W/cm² (two O2 per CH4 for full oxidation)
+efficiency = dc_power / lhv_power
 print(f"LHV based DC efficiency: {efficiency*100:.1f} %")
+
+# Or by shortening the therms:
+lhv_voltage = lhv / (2 * z_O2 * F)  # V
+print(f"LHV voltage: {lhv_voltage:.2f} V")
+efficiency = cell_voltage / lhv_voltage  # LHV based DC efficiency
+print(f"LHV based DC efficiency: {efficiency*100:.1f} %")
+```
