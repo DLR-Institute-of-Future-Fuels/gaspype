@@ -116,3 +116,18 @@ ax.set_ylabel("Current density / A/cm²")
 ax.plot(z_position, node_current, '-')
 ```
 
+Based on the cell current and voltage the energy balance can be calculated.
+In the following the electric cell output power (often referred to as "DC power")
+and lower heating value (LHV) are calculated. The numbers here are per cell area for
+being cell and stack size independent. The quotient of both is often referred to as
+LHV based DC efficiency.
+
+```python
+
+dc_power = cell_voltage * terminal_current  # W/cm²
+
+lhv = gp.fluid({'CH4': 1, 'H2O': -2, 'CO2': -1}).get_H(25 + 273.15)  # LHV of methane
+efficiency = dc_power / lhv  # LHV based DC efficiency
+
+print(f"DC power: {dc_power:.2f} W/cm²")
+print(f"LHV based DC efficiency: {efficiency*100:.1f} %")
