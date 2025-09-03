@@ -7,7 +7,7 @@ from gaspype._phys_data import atomic_weights, db_reader
 import re
 import pkgutil
 from .constants import R, epsy, p0
-from .typing import FloatArray, NDFloat, Shape
+from .typing import FloatArray, NDFloat, Shape, ArrayIndices
 
 T = TypeVar('T', 'fluid', 'elements')
 
@@ -483,6 +483,28 @@ class fluid:
             assert set(species) <= set(self.fs.species), f'Species {", ".join([s for s in species if s not in self.fs.species])} is/are not part of the fluid system'
             return self.array_fractions[..., [self.fs.species.index(k) for k in species]]
 
+    def get_n(self, species: str | list[str] | None = None) -> FloatArray:
+        """Get molar amount of fluid species
+
+        Args:
+            species: A single species name, a list of species names or None for
+                returning the amount of all species
+
+        Returns:
+            Returns an array of floats with the molar amount of the species.
+            If the a single species name is provided the return float array has
+            the same dimensions as the fluid type. If a list or None is provided
+            the return array has an additional dimension for the species.
+        """
+        if not species:
+            return self.array_composition
+        elif isinstance(species, str):
+            assert species in self.fs.species, f'Species {species} is not part of the fluid system'
+            return self.array_composition[..., self.fs.species.index(species)]
+        else:
+            assert set(species) <= set(self.fs.species), f'Species {", ".join([s for s in species if s not in self.fs.species])} is/are not part of the fluid system'
+            return self.array_composition[..., [self.fs.species.index(k) for k in species]]
+
     def __add__(self, other: T) -> T:
         return array_operation(self, other, np.add)
 
@@ -510,16 +532,21 @@ class fluid:
     # def __array__(self) -> FloatArray:
     #     return self.array_composition
 
-    def __getitem__(self, key: str | int | list[str] | list[int] | slice) -> FloatArray:
+    @overload
+    def __getitem__(self, key: str) -> FloatArray:
+        pass
+
+    @overload
+    def __getitem__(self, key: ArrayIndices) -> 'fluid':
+        pass
+
+    def __getitem__(self, key: str | ArrayIndices) -> Any:
         if isinstance(key, str):
             assert key in self.fs.species, f'Species {key} is not part of the fluid system'
             return self.array_composition[..., self.fs.species.index(key)]
-        elif isinstance(key, (slice, int)):
-            return self.array_composition[..., key]
         else:
-            mset = set(self.fs.species) | set(range(len(self.fs.species)))
-            assert set(key) <= mset, f'Species {", ".join([str(s) for s in key if s not in mset])} is/are not part of the fluid system'
-            return self.array_composition[..., [self.fs.species.index(k) if isinstance(k, str) else k for k in key]]
+            key_tuple = key if isinstance(key, tuple) else (key,)
+            return fluid(self.array_composition[(*key_tuple, slice(None))], self.fs)
 
     def __iter__(self) -> Iterator[dict[str, float]]:
         assert len(self.shape) < 2, 'Cannot iterate over species with more than one dimension'
@@ -614,6 +641,28 @@ class elements:
         """
         return np.sum(self.array_elemental_composition * self.fs.array_atomic_mass, axis=-1, dtype=NDFloat)
 
+    def get_n(self, elemental_species: str | list[str] | None = None) -> FloatArray:
+        """Get molar amount of elements
+
+        Args:
+            elemental_species: A single element name, a list of element names or None for
+                returning the amount of all element
+
+        Returns:
+            Returns an array of floats with the molar amount of the elements.
+            If the a single element name is provided the return float array has
+            the same dimensions as the fluid type. If a list or None is provided
+            the return array has an additional dimension for the elements.
+        """
+        if not elemental_species:
+            return self.array_elemental_composition
+        elif isinstance(elemental_species, str):
+            assert elemental_species in self.fs.elements, f'Element {elemental_species} is not part of the fluid system'
+            return self.array_elemental_composition[..., self.fs.elements.index(elemental_species)]
+        else:
+            assert set(elemental_species) <= set(self.fs.elements), f'Elements {", ".join([s for s in elemental_species if s not in self.fs.elements])} is/are not part of the fluid system'
+            return self.array_elemental_composition[..., [self.fs.elements.index(k) for k in elemental_species]]
+
     def __add__(self, other: 'fluid | elements') -> 'elements':
         return array_operation(self, other, np.add)
 
@@ -639,16 +688,21 @@ class elements:
     def __array__(self) -> FloatArray:
         return self.array_elemental_composition
 
-    def __getitem__(self, key: str | int | list[str] | list[int] | slice) -> FloatArray:
+    @overload
+    def __getitem__(self, key: str) -> FloatArray:
+        pass
+
+    @overload
+    def __getitem__(self, key: ArrayIndices) -> 'elements':
+        pass
+
+    def __getitem__(self, key: str | ArrayIndices) -> Any:
         if isinstance(key, str):
             assert key in self.fs.elements, f'Element {key} is not part of the fluid system'
             return self.array_elemental_composition[..., self.fs.elements.index(key)]
-        elif isinstance(key, (slice, int)):
-            return self.array_elemental_composition[..., key]
         else:
-            mset = set(self.fs.elements) | set(range(len(self.fs.elements)))
-            assert set(key) <= mset, f'Elements {", ".join([str(s) for s in key if s not in mset])} is/are not part of the fluid system'
-            return self.array_elemental_composition[..., [self.fs.elements.index(k) if isinstance(k, str) else k for k in key]]
+            key_tuple = key if isinstance(key, tuple) else (key,)
+            return elements(self.array_elemental_composition[(*key_tuple, slice(None))], self.fs)
 
     def __iter__(self) -> Iterator[dict[str, float]]:
         assert len(self.shape) < 2, 'Cannot iterate over elements with more than one dimension'
