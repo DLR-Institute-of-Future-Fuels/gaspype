@@ -12,28 +12,28 @@ def test_str_index():
     assert el['C'].shape == (2, 3, 4)
 
 
-def test_str_list_index():
-    assert fl[['CO2', 'H2', 'CO']].shape == (2, 3, 4, 3)
-    assert el[['C', 'H', 'O']].shape == (2, 3, 4, 3)
+def test_single_axis_int_index():
+    assert fl[0].shape == (3, 4)
+    assert fl[1].shape == (3, 4)
+    assert el[1].shape == (3, 4)
+    assert el[0].shape == (3, 4)
 
 
-def test_int_list_index():
-    assert fl[[1, 2, 0, 5]].shape == (2, 3, 4, 4)
-    assert el[[1, 2, 0, 3]].shape == (2, 3, 4, 4)
+def test_single_axis_int_list():
+    assert fl[:, [0, 1]].shape == (2, 2, 4)
+    assert el[:, [0, 1]].shape == (2, 2, 4)
 
 
-def test_mixed_list_index():
-    assert el[[1, 'H', 0, 'O']].shape == (2, 3, 4, 4)
-
-
-def test_int_index():
-    assert fl[5].shape == (2, 3, 4)
-    assert el[-1].shape == (2, 3, 4)
-
-
-def test_slice_index():
-    assert fl[0:3].shape == (2, 3, 4, 3)
-    assert fl[:].shape == (2, 3, 4, 6)
-
-    assert el[0:3].shape == (2, 3, 4, 3)
-    assert el[:].shape == (2, 3, 4, 4)
+def test_multi_axis_int_index():
+    assert fl[0, 1].shape == (4,)
+    assert fl[0, 1, 2].shape == tuple()
+    assert fl[0, 2].shape == (4,)
+    assert fl[:, 2, :].shape == (2, 4)
+    assert fl[0, [1, 2]].shape == (2, 4)
+    assert fl[..., 0].shape == (2, 3)
+    assert el[0, 1].shape == (4,)
+    assert el[0, 1, 2].shape == tuple()
+    assert el[0, 2].shape == (4,)
+    assert el[:, 2, :].shape == (2, 4)
+    assert el[0, [1, 2]].shape == (2, 4)
+    assert el[..., 0].shape == (2, 3)
