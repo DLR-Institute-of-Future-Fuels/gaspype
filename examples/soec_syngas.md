@@ -24,7 +24,7 @@ p = 1e5  # Pa
 fs = gp.fluid_system('H2, H2O, O2, CH4, CO, CO2')
 feed_fuel = gp.fluid({'H2O': 2, 'CO2': 1}, fs)
 
-o2_full_conv = np.sum(gp.elements(feed_fuel)[['C' ,'O']] * [-1/2, 1/2])
+o2_full_conv = np.sum(gp.elements(feed_fuel).get_n(['C' ,'O']) * [-1/2, 1/2])
 
 feed_air = gp.fluid({'O2': 1, 'N2': 4}) * o2_full_conv * utilization * air_dilution
 
