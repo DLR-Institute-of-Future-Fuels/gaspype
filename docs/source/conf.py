@@ -10,7 +10,7 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath("../src/"))
 
-project = 'gaspype'
+project = 'Gaspype'
 copyright = '2025, Nicolas Kruse'
 author = 'Nicolas Kruse'
 
