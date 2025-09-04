@@ -11,9 +11,9 @@ authors:
     city: Köln
 version: v1.1.3
 date-released: "2025-06-24"
-#identifiers:
-#  - description: This is the collection of archived snapshots of all versions of Gaspype
-#    type: doi
-#    value: ""
+identifiers:
+  - description: This is the collection of archived snapshots of all versions of Gaspype
+    type: doi
+    value: "10.5281/zenodo.17047601"
 license: MIT
 repository-code: "https://github.com/DLR-Institute-of-Future-Fuels/gaspype"
