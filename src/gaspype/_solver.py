@@ -5,12 +5,13 @@ from .typing import NDFloat, FloatArray
 from .constants import p0, epsy
 
 if TYPE_CHECKING:
-    from scipy.optimize import minimize
+    def minimize(*a: Any, **b: Any) -> dict[str, FloatArray]:
+        ...
 else:
     try:
         from scipy.optimize import minimize
     except ImportError:
-        def minimize(*a: Any, **b: Any) -> Any:
+        def minimize(*a, **b):
             raise ImportError('scipy is required for the "gibs minimization" solver')
 
 
@@ -67,7 +68,7 @@ def equilibrium_gmin(fs: fluid_system, element_composition: FloatArray, t: float
 
     start_composition_array = np.ones_like(fs.species, dtype=float)
     sol = np.array(minimize(gibbs_rt, start_composition_array, args=(grt, p_rel), method='SLSQP',
-                   bounds=bnds, constraints=cons, options={'maxiter': 2000, 'ftol': 1e-12})['x'], dtype=NDFloat)  # type: ignore
+                   bounds=bnds, constraints=cons, options={'maxiter': 2000, 'ftol': 1e-12})['x'], dtype=NDFloat)
 
     return sol
 
