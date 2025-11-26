@@ -1,9 +1,17 @@
-from typing import Literal, Any
-from scipy.optimize import minimize, root
+from typing import Literal, Any, TYPE_CHECKING
 import numpy as np
 from ._main import elements, fluid, fluid_system
 from .typing import NDFloat, FloatArray
 from .constants import p0, epsy
+
+if TYPE_CHECKING:
+    from scipy.optimize import minimize
+else:
+    try:
+        from scipy.optimize import minimize
+    except ImportError:
+        def minimize(*a: Any, **b: Any) -> Any:
+            raise ImportError('scipy is required for the "gibs minimization" solver')
 
 
 def set_solver(solver: Literal['gibs minimization', 'system of equations']) -> None:
@@ -13,8 +21,7 @@ def set_solver(solver: Literal['gibs minimization', 'system of equations']) -> N
     Solvers:
         - **system of equations** (default): Finds the root for a system of
           equations covering a minimal set of equilibrium equations and elemental balance.
-          The minimal set of equilibrium equations is derived by SVD using the null_space
-          implementation of scipy.
+          The minimal set of equilibrium equations is derived by SVD calculating null space.
 
         - **gibs minimization**: Minimizes the total Gibbs Enthalpy while keeping
           the elemental composition constant using the SLSQP implementation of scipy
@@ -72,7 +79,6 @@ def equilibrium_eq(fs: fluid_system, element_composition: FloatArray, t: float, 
     element_norm_log = np.log(element_norm + epsy)
 
     a = fs.array_stoichiometric_coefficients
-    a_sum = np.sum(a)
     el_matrix = fs.array_species_elements.T
 
     # Log equilibrium constants for each reaction equation
@@ -82,42 +88,49 @@ def equilibrium_eq(fs: fluid_system, element_composition: FloatArray, t: float, 
     bp = b - np.sum(a * np.log(p / p0), axis=1)
 
     # Calculating the maximum possible amount for each species based on the elements
-    species_max = np.min(element_norm / (fs.array_species_elements + epsy), axis=1)
-    logn_start = np.log(species_max + epsy)
+    species_max = np.min((element_norm + epsy) / (fs.array_species_elements + epsy), axis=1)
+    species_max_log = np.log(species_max + epsy)
 
-    # global count
-    # count = 0
-
-    weighting = 100
+    # Prepare constant arrays
+    j_eq_eye = np.eye(len(species_max))
+    j_eq_ones = np.ones((len(species_max), 1))
 
     def residuals(logn: FloatArray) -> tuple[FloatArray, FloatArray]:
-        # global count
-        # count += 1
-        # print('------', count)
-        # assert count < 100
-        n = np.exp(logn)
+        n: FloatArray = np.exp(logn)  # n is the molar amount normalized by el_max
         n_sum = np.sum(n)
 
         # Residuals from equilibrium equations:
-        resid_eq = np.dot(a, logn - np.log(n_sum)) - bp
+        resid_eq = a @ (logn - np.log(n_sum)) - bp
 
-        # Jacobian:
-        j_eq = a - a_sum * n / n_sum
+        # Jacobian for equilibrium equations:
+        j_eq = a @ (j_eq_eye - j_eq_ones * n / np.sum(n))
 
         # Residuals from elemental balance:
-        el_sum = np.dot(el_matrix, n)
-        resid_ab = weighting * (np.log(el_sum) - element_norm_log)
+        el_sum_norm = np.dot(el_matrix, n) + epsy
+        resid_ab = np.log(el_sum_norm) - element_norm_log
+        #print(f'* resid_eq: {resid_eq}      resid_ab: {resid_ab}            {element_norm}')
 
-        # print(el_sum, element_norm)
-
-        # Jacobian
-        j_ab = weighting * el_matrix * n / el_sum[:, np.newaxis]
+        # Jacobian for elemental balance:
+        j_ab = el_matrix * n / el_sum_norm[:, None]
 
         return (np.hstack([resid_eq, resid_ab]), np.concatenate([j_eq, j_ab], axis=0))
 
-    ret = root(residuals, logn_start, jac=True, tol=1e-10)
-    n = np.exp(np.array(ret['x'], dtype=NDFloat))
-    # print(ret)
+    logn: FloatArray = species_max_log  # Set start values
+
+    for i in range(30):
+        rF, J = residuals(logn)
+
+        delta = np.linalg.solve(J, -rF)
+
+        logn = logn + delta
+        logn = np.minimum(logn, species_max_log + 1)
+
+        #print(f'{i} F: {np.linalg.norm(rF):.5f} lognmin={np.min(logn):.3f}, lognmax={np.max(logn):.3f}, delta={np.linalg.norm(delta):.3f} logn=')
+        if np.linalg.norm(rF) < 1e-10:
+            #print(f'Converged in {i} iterations')
+            break
+
+    n = np.exp(logn)
 
     return n * el_max
 

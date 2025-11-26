@@ -14,7 +14,6 @@ classifiers = [
 ]
 dependencies = [
   "numpy>2.0.0",
-  "scipy>1.12.0",
 ]
 
 [project.urls]
@@ -42,7 +41,6 @@ dev = [
     "cantera",
     "pyyaml>=6.0.1",
     "types-PyYAML",
-    "scipy-stubs",
     "matplotlib"
 ]
 doc_build = [
