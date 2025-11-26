@@ -55,6 +55,7 @@ def test_nh3_data():
 def test_equilibrium():
     # Compare equilibrium calculations to Cycle-Tempo results
     df = pd.read_csv('tests/test_data/cycle_temp_matlab_ref.csv', sep=';', decimal=',').fillna(0)
+    #gp.set_solver('gibs minimization')
     fs = gp.fluid_system(['CH4', 'C2H6', 'C3H8', 'C4H10,n-butane', 'H2O', 'H2', 'CO2', 'CO'])
 
     for index, row in df.iterrows():
@@ -84,7 +85,7 @@ def test_equilibrium():
             result_values = gp.equilibrium(fl, t, p).array_fractions
 
             print(index, gp.get_solver(), '----')
-            print(molar_comp)
+            print('Species:        ' + ''.join(f"{s:14}" for s in fs.species))
             outp(result_values, 'Under test: ')
             outp(reference_values, 'Reference:  ')
 
@@ -123,3 +124,7 @@ def test_carbon():
             assert result_values > 0.9
         else:
             assert result_values < 1.1
+
+
+if __name__ == '__main__':
+    test_equilibrium()

@@ -2,7 +2,7 @@ import numpy as np
 from numpy.typing import NDArray
 from typing import Sequence, Any, TypeVar, Iterator, overload, Callable
 from math import log as ln, ceil
-from scipy.linalg import null_space
+from ._numerics import null_space
 from gaspype._phys_data import atomic_weights, db_reader
 import re
 import pkgutil
@@ -90,7 +90,7 @@ class fluid_system:
 
         self._t_offset = int(t_min)
         self.species = species
-        self.active_species = species
+        self.active_species = species  # for backward compatibility
         element_compositions: list[dict[str, int]] = list()
 
         for i, s in enumerate(species):
@@ -220,7 +220,7 @@ class fluid:
                 The array can be multidimensional, the size of the last dimension
                 must match the number of species defined for the fluid_system.
                 The indices of the last dimension correspond to the indices in
-                the active_species list of the fluid_system.
+                the species list of the fluid_system.
             fs: Reference to a fluid_system. Is optional if composition is
                 defined by a dict. If not specified a new fluid_system with
                 the components from the dict is created.
@@ -585,7 +585,7 @@ class elements:
                 The array can be multidimensional, the size of the last dimension
                 must match the number of elements used in the fluid_system.
                 The indices of the last dimension correspond to the indices in
-                the active_species list of the fluid_system.
+                the species list of the fluid_system.
             fs: Reference to a fluid_system.
             shape: Tuple or list for the dimensions the fluid array. Can
                 only be used if composition argument is a dict. Otherwise

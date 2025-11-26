@@ -37,7 +37,7 @@ ax.set_ylabel("molar fraction")
 ax.set_ylim(0, 1.1)
 #ax.set_xlim(0, 100)
 ax.plot(ratio, equilibrium_h2o.get_x())
-ax.legend(fs.active_species)
+ax.legend(fs.species)
 ```
 
 Equilibrium calculation for methane CO2 mixtures:
@@ -56,5 +56,5 @@ ax.set_ylabel("molar fraction")
 ax.set_ylim(0, 1.1)
 #ax.set_xlim(0, 100)
 ax.plot(ratio, equilibrium_co2.get_x())
-ax.legend(fs.active_species)
+ax.legend(fs.species)
 ```
