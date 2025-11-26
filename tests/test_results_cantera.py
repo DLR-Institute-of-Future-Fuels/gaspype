@@ -50,7 +50,7 @@ def test_equilibrium_cantera():
         print(f"Inp. Composition: {comp_dict}")
         print(f"Res. Composition: {gp_comp_result}")
         print(f"Ref. Composition: {ct_comp_result}")
-        print(f"---")
+        print("---")
         assert np.all(dev < 0.04), f"Deviateion: {dev}"
 
     assert np.mean(deviations) < 2e-4
@@ -74,4 +74,4 @@ def test_cantera():
 
 
 if __name__ == "__main__":
-    test_cantera()
+    test_equilibrium_cantera()

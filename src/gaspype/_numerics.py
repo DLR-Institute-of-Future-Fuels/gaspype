@@ -8,7 +8,7 @@ def null_space(A: FloatArray) -> FloatArray:
 
     Args:
         A: Input matrix of shape (m, n)
-    
+
     Return:
         Null space vectors as columns, shape (n, n - rank)
     """
@@ -17,5 +17,5 @@ def null_space(A: FloatArray) -> FloatArray:
     rcond = np.finfo(s.dtype).eps * max(M, N)
     tol = np.amax(s, initial=0.) * rcond
     num = np.sum(s > tol, dtype=int)
-    Q = vh[num:,:].T.conj()
+    Q = vh[num:, :].T.conj()
     return Q

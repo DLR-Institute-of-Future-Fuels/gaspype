@@ -44,6 +44,10 @@ eq_gaspype = gp.equilibrium(fluid, t=temperatures, p=pressure)
 elapsed_gaspype = time.perf_counter() - t0
 print(f"Gaspype: {elapsed_gaspype:.4f} s")
 
+# Check if elemental balance of result is correct
+el_err = np.sum((gp.elements(eq_gaspype) - gp.elements(fluid)).get_n()**2)
+assert np.all(el_err < 1e-20)
+
 # -----------------------
 # Compare first 5 results
 # -----------------------
