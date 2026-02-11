@@ -53,7 +53,8 @@ doc_build = [
   "ipykernel",
   "jupyter",
   "nbconvert",
-  "notedown"
+  "notedown",
+  "setuptools"
 ]
 
 [tool.mypy]
