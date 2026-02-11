@@ -1,21 +1,41 @@
 # Gaspype
-The Python package provides a performant library for thermodynamic calculations
-like equilibrium reactions for several hundred gas species and their mixtures -
-written in Python/NumPy.
+Gaspype is a performant Python library for thermodynamic calculations like equilibrium
+reactions for several hundred gas species and their mixtures - written in Python/NumPy.
 
-Species are treated as ideal gases. Therefore the application is limited to moderate
-pressures or high temperature applications.
+It is designed to address the needs of researchers and engineers working in chemical
+engineering, combustion analysis, and energy systems. Thermodynamic calculations,
+especially equilibrium reactions in gas mixtures, are essential for understanding
+processes such as fuel combustion, solid oxide cell (SOFC/SOEC) operations, and other
+high-temperature chemical reactions. Many existing tools present barriers to entry,
+whether due to limited software development experience or restrictive licensing of
+closed-source packages. 
+
+This library aims to minimize friction by providing a high-level abstraction and a
+ergonomic API, making it accessible for both rapid exploratory calculations and
+integration into large-scale models. Gaspype is implemented in pure Python, fully
+typed, and leverages NumPy vectorization to combine high performance with an
+intuitive interface. It was developed based on practical experience with
+spatially-resolved modeling of solid oxide cells and high-temperature solar
+applications, ensuring its suitability for a wide range of thermodynamic modeling
+tasks.
+
+Compared to other open-source packages like Cantera, Gaspype offers a streamlined,
+Pythonic API and competitive performance, despite being implemented entirely in
+Python. Its open-source nature and minimal dependencies make it an accessible and
+powerful tool for researchers in chemistry, chemical engineering, energy systems,
+and electrochemistry.
 
 It is designed with goal to be portable to NumPy-style GPU frameworks like JAX and PyTorch.
 
 ## Key Features
-
 - Pure Python implementation with NumPy vectorization for high performance
 - Immutable types and comprehensive type hints for reliability
 - Intuitive, Pythonic API for both rapid prototyping and complex multidimensional models
 - Ready for Jupyter Notebook and educational use
 - Designed for future GPU support (JAX, PyTorch)
-- Ships with a comprehensive NASA9-based species database
+- Ships with a comprehensive NASA9-based species database (500+ species with NASA9-polynomials)
+- Supports electrochemical calculations including Nernst potentials and cell voltages
+- Optimized binary database format for fast species lookup and minimal memory usage
 
 ## Installation
 Installation with pip:
@@ -45,7 +65,7 @@ H2O              33.33 %
 H2               66.67 %
 ```
 
-Its' functions provides thermodynamic, mass balance and ideal gas properties of the mixture.
+Its functions provide thermodynamic, mass balance and ideal gas properties of the mixture.
 
 ``` python
 cp = fl.get_cp(t=800+273.15)
@@ -151,7 +171,7 @@ N                1.000e+00 mol
 O                7.000e-01 mol
 ```
 
-Going from an atomic composition to an molecular composition is possible as well.
+Going from an atomic composition to a molecular composition is possible as well.
 One way is to calculate the thermodynamic equilibrium for a mixture:
 
 ``` python
@@ -171,7 +191,7 @@ O2                0.00 %
 
 The ```equilibrium``` function can be called with a ```fluid``` or ```elements``` object
 as first argument. ```fluid``` and ```elements``` referencing a ```fluid_system``` object
-witch can be be set as shown above during the object instantiation. If not provided,
+which can be set as shown above during the object instantiation. If not provided,
 a new one will be created automatically. Providing a ```fluid_system``` gives more
 control over which molecular species are included in derived ```fluid``` objects.
 Furthermore arithmetic operations between objects with the same ```fluid_system```
@@ -189,7 +209,7 @@ CO2              18.07 %
 O2                0.00 %
 ```
 
-Especially if the ```fluid_system``` of one of the operants has not a subset of
+Especially if the ```fluid_system``` of one of the operands has not a subset of
 molecular species of the other ```fluid_system``` a new ```fluid_system``` will
 be created for the operation which might degrade performance:
 
@@ -244,6 +264,18 @@ Ensure that everything is set up correctly by running the tests:
 ```bash
 pytest
 ```
+
+## Limitations
+- **Ideal gas assumption**: Gaspype treats species as ideal gases, limiting applicability to moderate pressures or high-temperature applications.
+- **Isobaric equilibrium**: Currently, only isobaric (constant pressure) equilibrium calculations are implemented.
+
+## Quality Assurance
+Gaspype's calculations are validated against reference data from:
+- **Refprop** - for thermodynamic properties
+- **Cantera** - for equilibrium calculations
+- **Cycle-Tempo** - for additional equilibrium validation
+
+The test suite includes over 1,000 reference values and covers all code snippets from the documentation.
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
