@@ -70,7 +70,7 @@ if CEA_AVAILABLE:
 
     time.sleep(0.5)
 
-    # the current NASA CEA Python API does not provide a NumPy-style 
+    # the current NASA CEA Python API does not provide a NumPy-style
     # vectorized interface for thermodynamic property lookups
     t0 = time.perf_counter()
     cea_cp = np.zeros(n_states)
