@@ -50,10 +50,10 @@ doc_build = [
   "myst-parser",
   "pandas",
   "matplotlib",
-  "ipykernel",
-  "jupyter",
-  "nbconvert",
-  "notedown"
+  "ipykernel==6.29",
+  "jupyter==1.1",
+  "nbconvert==7.16",
+  "notedown==1.5"
 ]
 
 [tool.mypy]
