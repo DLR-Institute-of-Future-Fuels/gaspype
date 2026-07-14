@@ -11,11 +11,11 @@ The conversion is done like the following automated by the
 [docs/source/render_examples.py](../docs/source/render_examples.py) script:
 ``` bash
 # Converting markdown with code sections to Jupyter Notebook and run it:
-notedown examples/soec_methane.md --to notebook --output docs/source/api/soec_methane.ipynb --run
+notedown examples/sofc_methane.md --to notebook --output docs/source/api/sofc_methane.ipynb --run
 
 # Converting the Jupyter Notebook to Markdown and a folder with image
 # files placed in docs/source/api/:
-jupyter nbconvert --to markdown docs/source/api/soec_methane.ipynb --output soec_methane.md
+jupyter nbconvert --to markdown docs/source/api/sofc_methane.ipynb --output sofc_methane.md
 ```
 
 A new example Markdown file can be created from a Jupyter Notebook running
