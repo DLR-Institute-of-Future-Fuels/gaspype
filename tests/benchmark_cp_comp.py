@@ -9,12 +9,14 @@ try:
 except ImportError:
     CEA_AVAILABLE = False
 
-gas = ct.Solution("gri30.yaml")
+# Restrict Cantera to the same species as Gaspype for a fair comparison
+gri30 = ct.Solution("gri30.yaml")
+gas = ct.Solution(thermo='ideal-gas', species=[s for s in gri30.species() if s.name in ('H2', 'H2O', 'N2')])
 n_species = gas.n_species
 n_states = 1_000_000
 
 # Random temperatures and pressures
-temperatures = np.linspace(300.0, 2500.0, n_states)
+temperatures = np.linspace(300.0, 2000.0, n_states)
 pressures = np.full(n_states, ct.one_atm)
 
 # Generate random compositions for H2, H2O, N2
@@ -22,7 +24,7 @@ rng = np.random.default_rng(seed=42)
 fractions = rng.random((n_states, 3))
 fractions /= fractions.sum(axis=1)[:, None]  # normalize
 
-# Convert to full 53-species mole fraction array
+# Convert to mole fraction array in Cantera species order
 X = np.zeros((n_states, n_species))
 X[:, gas.species_index('H2')] = fractions[:, 0]
 X[:, gas.species_index('H2O')] = fractions[:, 1]

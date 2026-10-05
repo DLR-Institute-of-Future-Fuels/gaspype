@@ -12,11 +12,13 @@ Example usage:
     >>> cp = fl.get_cp(t=800+273.15)
 """
 
+from ._version import __version__
 from ._main import species, fluid_system, fluid, elements
 from ._operations import stack, concat, carbon_activity, oxygen_partial_pressure
 from ._solver import set_solver, get_solver, equilibrium
 
 __all__ = [
+    '__version__',
     'species', 'fluid_system', 'fluid', 'elements',
     'set_solver', 'get_solver', 'equilibrium',
     'stack', 'concat', 'carbon_activity', 'oxygen_partial_pressure']

@@ -9,13 +9,16 @@ try:
 except ImportError:
     CEA_AVAILABLE = False
 
-gas = ct.Solution("gri30.yaml")
 composition = {"H2": 0.3, "H2O": 0.3, "N2": 0.4}
+
+# Restrict Cantera to the same species as Gaspype for a fair comparison
+gri30 = ct.Solution("gri30.yaml")
+gas = ct.Solution(thermo='ideal-gas', species=[s for s in gri30.species() if s.name in composition])
 
 n_species = gas.n_species
 n_states = 1_000_000
 
-temperatures = np.linspace(300.0, 2500.0, n_states)
+temperatures = np.linspace(300.0, 2000.0, n_states)
 pressures = np.full(n_states, ct.one_atm)
 
 states = ct.SolutionArray(gas, len(temperatures))

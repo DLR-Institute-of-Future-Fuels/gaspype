@@ -52,8 +52,20 @@ def get_solver() -> Literal['gibs minimization', 'system of equations']:
         return 'system of equations'
 
 
-def equilibrium_gmin(fs: fluid_system, element_composition: FloatArray, t: float, p: float) -> FloatArray:
-    """Calculate the equilibrium composition of a fluid based on minimizing the Gibbs free energy"""
+def equilibrium_gmin(fs: fluid_system, element_composition: FloatArray,
+                     t: float | FloatArray, p: float | FloatArray) -> FloatArray:
+    """Calculate the equilibrium composition of a fluid based on minimizing the Gibbs free energy
+
+    Args:
+        fs: Fluid system
+        element_composition: Elemental composition with shape (..., n_elements)
+        t: Temperature in Kelvin, broadcastable to the batch shape
+        p: Pressure in Pascal, broadcastable to the batch shape
+
+    Returns:
+        Molar amounts of species with shape (..., n_species), where ... is the
+        broadcast shape of element_composition[..., 0], t and p
+    """
     def element_balance(n: FloatArray, fs: fluid_system, ref: FloatArray) -> FloatArray:
         return np.dot(n, fs.array_species_elements) - ref  # type: ignore
 
@@ -61,83 +73,111 @@ def equilibrium_gmin(fs: fluid_system, element_composition: FloatArray, t: float
         # Calculate G/(R*T)
         return np.sum(n * (grt + np.log(p_rel * n / np.sum(n) + epsy)))
 
-    cons: dict[str, Any] = {'type': 'eq', 'fun': element_balance, 'args': [fs, element_composition]}
+    element_composition, t, p = _broadcast_inputs(element_composition, t, p)
     bnds = [(0, None) for _ in fs.species]
-    grt = fs.get_species_g_rt(t)
-    p_rel = p / p0
-
     start_composition_array = np.ones_like(fs.species, dtype=float)
-    sol = np.array(minimize(gibbs_rt, start_composition_array, args=(grt, p_rel), method='SLSQP',
-                   bounds=bnds, constraints=cons, options={'maxiter': 2000, 'ftol': 1e-12})['x'], dtype=NDFloat)
+
+    sol = np.zeros(t.shape + (len(fs.species),), dtype=NDFloat)
+    for index in np.ndindex(t.shape):
+        cons: dict[str, Any] = {'type': 'eq', 'fun': element_balance, 'args': [fs, element_composition[index]]}
+        grt = fs.get_species_g_rt(float(t[index]))
+        p_rel = float(p[index]) / p0
+        sol[index] = minimize(gibbs_rt, start_composition_array, args=(grt, p_rel), method='SLSQP',
+                              bounds=bnds, constraints=cons, options={'maxiter': 2000, 'ftol': 1e-12})['x']
 
     return sol
 
 
-def equilibrium_eq(fs: fluid_system, element_composition: FloatArray, t: float, p: float) -> FloatArray:
-    """Calculate the equilibrium composition of a fluid based on equilibrium equations"""
-    el_max = np.max(element_composition)
+def _broadcast_inputs(element_composition: FloatArray, t: float | FloatArray,
+                      p: float | FloatArray) -> tuple[FloatArray, FloatArray, FloatArray]:
+    """Broadcast element composition (..., n_elements), t and p to a common batch shape"""
+    element_composition = np.asarray(element_composition, dtype=NDFloat)
+    t_arr = np.asarray(t, dtype=NDFloat)
+    p_arr = np.asarray(p, dtype=NDFloat)
+    batch_shape = np.broadcast_shapes(element_composition.shape[:-1], t_arr.shape, p_arr.shape)
+    return (np.broadcast_to(element_composition, batch_shape + element_composition.shape[-1:]),
+            np.broadcast_to(t_arr, batch_shape),
+            np.broadcast_to(p_arr, batch_shape))
+
+
+def equilibrium_eq(fs: fluid_system, element_composition: FloatArray,
+                   t: float | FloatArray, p: float | FloatArray) -> FloatArray:
+    """Calculate the equilibrium composition of a fluid based on equilibrium equations
+
+    All equilibria of the batch are solved simultaneously by a vectorized Newton
+    iteration.
+
+    Args:
+        fs: Fluid system
+        element_composition: Elemental composition with shape (..., n_elements)
+        t: Temperature in Kelvin, broadcastable to the batch shape
+        p: Pressure in Pascal, broadcastable to the batch shape
+
+    Returns:
+        Molar amounts of species with shape (..., n_species), where ... is the
+        broadcast shape of element_composition[..., 0], t and p
+    """
+    element_composition, t, p = _broadcast_inputs(element_composition, t, p)
+
+    a = fs.array_stoichiometric_coefficients  # (n_reactions, n_species)
+    species_elements = fs.array_species_elements  # (n_species, n_elements)
+    a_sum = np.sum(a, axis=1)
+
+    el_max = np.max(element_composition, axis=-1, keepdims=True)
     element_norm = element_composition / el_max
     element_norm_log = np.log(element_norm + epsy)
 
-    a = fs.array_stoichiometric_coefficients
-    el_matrix = fs.array_species_elements.T
-
     # Log equilibrium constants for each reaction equation
-    b = -np.sum(fs.get_species_g_rt(t) * a, axis=1)
+    b = -fs.get_species_g_rt(t) @ a.T
 
     # Pressure corrected log equilibrium constants
-    bp = b - np.sum(a * np.log(p / p0), axis=1)
+    bp = b - a_sum * np.log(p / p0)[..., None]
 
     # Calculating the maximum possible amount for each species based on the elements
-    species_max = np.min((element_norm + epsy) / (fs.array_species_elements + epsy), axis=1)
+    species_max = np.min((element_norm[..., None, :] + epsy) / (species_elements + epsy), axis=-1)
     species_max_log = np.log(species_max + epsy)
-
-    # Prepare constant arrays
-    j_eq_eye = np.eye(len(species_max))
-    j_eq_ones = np.ones((len(species_max), 1))
 
     def residuals(logn: FloatArray) -> tuple[FloatArray, FloatArray]:
         n: FloatArray = np.exp(logn)  # n is the molar amount normalized by el_max
-        n_sum = np.sum(n)
+        n_sum = np.sum(n, axis=-1, keepdims=True)
 
         # Residuals from equilibrium equations:
-        resid_eq = a @ (logn - np.log(n_sum)) - bp
+        resid_eq = (logn - np.log(n_sum)) @ a.T - bp
 
-        # Jacobian for equilibrium equations:
-        j_eq = a @ (j_eq_eye - j_eq_ones * n / np.sum(n))
+        # Jacobian for equilibrium equations: a @ (I - 1 * n / n_sum)
+        j_eq = a - a_sum[:, None] * (n / n_sum)[..., None, :]
 
         # Residuals from elemental balance:
-        el_sum_norm = np.dot(el_matrix, n) + epsy
+        el_sum_norm = n @ species_elements + epsy
         resid_ab = np.log(el_sum_norm) - element_norm_log
-        #print(f'* resid_eq: {resid_eq}      resid_ab: {resid_ab}            {element_norm}')
 
         # Jacobian for elemental balance:
-        j_ab = el_matrix * n / el_sum_norm[:, None]
+        j_ab = species_elements.T * n[..., None, :] / el_sum_norm[..., :, None]
 
-        return (np.hstack([resid_eq, resid_ab]), np.concatenate([j_eq, j_ab], axis=0))
+        return (np.concatenate([resid_eq, resid_ab], axis=-1), np.concatenate([j_eq, j_ab], axis=-2))
 
     logn: FloatArray = species_max_log  # Set start values
 
-    for i in range(30):
+    for _ in range(30):
         rF, J = residuals(logn)
 
-        delta = np.linalg.solve(J, -rF)
+        delta = np.linalg.solve(J, -rF[..., None])[..., 0]
 
-        logn = logn + delta
-        logn = np.minimum(logn, species_max_log + 1)
+        logn = np.minimum(logn + delta, species_max_log + 1)
 
-        #print(f'{i} F: {np.linalg.norm(rF):.5f} lognmin={np.min(logn):.3f}, lognmax={np.max(logn):.3f}, delta={np.linalg.norm(delta):.3f} logn=')
-        if np.linalg.norm(rF) < 1e-10:
-            #print(f'Converged in {i} iterations')
+        # Iterate until all equilibria of the batch are converged
+        if np.all(np.linalg.norm(rF, axis=-1) < 1e-10):
             break
 
-    n = np.exp(logn)
+    n_eq: FloatArray = np.exp(logn) * el_max
+    return n_eq
 
-    return n * el_max
 
+def equilibrium(f: fluid | elements, t: float | FloatArray, p: float | FloatArray = 1e5) -> fluid:
+    """Calculate the isobaric equilibrium composition of a fluid at a given temperature and pressure
 
-def equilibrium(f: fluid | elements, t: float | FloatArray, p: float = 1e5) -> fluid:
-    """Calculate the isobaric equilibrium composition of a fluid at a given temperature and pressure"
+    The shapes of f, t and p are broadcast against each other, so
+    multiple equilibria are solved in parallel.
 
     Args:
         f: Fluid or elements object
@@ -164,18 +204,8 @@ def equilibrium(f: fluid | elements, t: float | FloatArray, p: float = 1e5) -> f
             return fluid(composition, f.fs)
 
     assert np.min(f.array_elemental_composition) >= 0, 'Input element fractions must be 0 or positive'
-    if isinstance(t, np.ndarray):
-        assert f.shape == tuple(), 'Multidimensional temperature can currently only used for 0D fluids'
-        t_composition = np.zeros(t.shape + (f.fs.array_species_elements.shape[0],))
-        for t_index in np.ndindex(t.shape):
-            t_composition[t_index] = _equilibrium_solver(f.fs, f.array_elemental_composition, float(t[t_index]), p)
-        return fluid(t_composition, f.fs)
-    else:
-        composition = np.ones(f.shape + (len(f.fs.species),), dtype=float)
-        for index in np.ndindex(f.shape):
-            # print(composition.shape, index, _equilibrium(f.fs, f._element_composition[index], t, p))
-            composition[index] = _equilibrium_solver(f.fs, f.array_elemental_composition[index], t, p)
-        return fluid(composition, f.fs)
+    composition = _equilibrium_solver(f.fs, f.array_elemental_composition, t, p)
+    return fluid(composition, f.fs)
 
 
 _equilibrium_solver = equilibrium_eq

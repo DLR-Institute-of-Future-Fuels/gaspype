@@ -14,5 +14,6 @@ venv/
 .venv/
 thermo_data/combined_data.yaml
 src/gaspype/data/therm_data.bin
+src/gaspype/_version.py
 */*/build/
 examples/*.ipynb

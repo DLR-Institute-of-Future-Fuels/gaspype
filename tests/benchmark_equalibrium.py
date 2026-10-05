@@ -25,19 +25,20 @@ species_to_track = ["CH4", "H2O", "CO", "CO2", "H2", "O2"]
 # -----------------------
 # Cantera benchmark
 # -----------------------
-gas = ct.Solution("gri30.yaml")
-gas.TPX = temperatures[0], pressure, composition
+# Restrict Cantera to the same species as Gaspype for a fair comparison
+gri30 = ct.Solution("gri30.yaml")
+gas = ct.Solution(thermo='ideal-gas', species=[s for s in gri30.species() if s.name in species_to_track])
 
-eq_cantera = np.zeros((n_temps, len(species_to_track)))
+states = ct.SolutionArray(gas, n_temps)
+states.TPX = temperatures, pressure, composition
 
 time.sleep(0.5)
 t0 = time.perf_counter()
-for i, T in enumerate(temperatures):
-    gas.TP = T, pressure
-    gas.equilibrate('TP')
-    eq_cantera[i, :] = [gas.X[gas.species_index(s)] for s in species_to_track]
+states.equilibrate('TP')
 elapsed_cantera = time.perf_counter() - t0
 print(f"Cantera: {elapsed_cantera:.4f} s")
+
+eq_cantera = states.X[:, [gas.species_index(s) for s in species_to_track]]
 
 # -----------------------
 # Gaspype benchmark
