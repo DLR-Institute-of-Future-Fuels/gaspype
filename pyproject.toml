@@ -1,6 +1,6 @@
 [project]
 name = "gaspype"
-version = "1.1.4"
+dynamic = ["version"]
 authors = [
   { name="Nicolas Kruse", email="nicolas.kruse@dlr.de" },
 ]
@@ -23,8 +23,11 @@ Repository = "https://github.com/DLR-Institute-of-Future-Fuels/gaspype.git"
 Issues = "https://github.com/DLR-Institute-of-Future-Fuels/gaspype/issues"
 
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=64", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+version_file = "src/gaspype/_version.py"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -9,8 +9,8 @@ authors:
     affiliation: "German Aerospace Center (DLR)"
     address: "Linder Höhe"
     city: Köln
-version: v1.1.4
-date-released: "2025-06-24"
+version: v1.1.5
+date-released: "2026-10-05"
 identifiers:
   - description: This is the collection of archived snapshots of all versions of Gaspype
     type: doi
