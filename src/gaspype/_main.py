@@ -546,7 +546,7 @@ class fluid:
             return self.array_composition[..., self.fs.species.index(key)]
         else:
             key_tuple = key if isinstance(key, tuple) else (key,)
-            return fluid(self.array_composition[(*key_tuple, slice(None))], self.fs)
+            return fluid(self.array_composition[key_tuple + (slice(None),)], self.fs)
 
     def __iter__(self) -> Iterator[dict[str, float]]:
         assert len(self.shape) < 2, 'Cannot iterate over species with more than one dimension'
@@ -702,7 +702,7 @@ class elements:
             return self.array_elemental_composition[..., self.fs.elements.index(key)]
         else:
             key_tuple = key if isinstance(key, tuple) else (key,)
-            return elements(self.array_elemental_composition[(*key_tuple, slice(None))], self.fs)
+            return elements(self.array_elemental_composition[key_tuple + (slice(None),)], self.fs)
 
     def __iter__(self) -> Iterator[dict[str, float]]:
         assert len(self.shape) < 2, 'Cannot iterate over elements with more than one dimension'
