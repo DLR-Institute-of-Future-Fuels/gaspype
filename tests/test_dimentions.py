@@ -120,3 +120,16 @@ def test_equilibrium_on_temperature_range():
     fl2 = gp.equilibrium(fl, np.linspace(300, 1000, 3), 1e5)
 
     assert fl2.shape == (3,)
+
+
+def test_equilibrium_broadcasting():
+    fl = gp.fluid({'C2H4': 0.5, 'C2H6': 0.5}, fs) * np.array([[1.0], [2.0]])
+    t = np.array([600, 900, 1200])
+    p = np.array([[1e5], [1e6]])
+    fl2 = gp.equilibrium(fl, t, p)
+
+    assert fl2.shape == (2, 3)
+    for i in range(2):
+        for j in range(3):
+            ref = gp.equilibrium(fl[i, 0], float(t[j]), float(p[i, 0]))
+            assert np.allclose(fl2[i, j].array_composition, ref.array_composition, rtol=1e-9)
