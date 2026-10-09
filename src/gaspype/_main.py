@@ -2,24 +2,65 @@ import numpy as np
 from numpy.typing import NDArray
 from typing import Sequence, Any, TypeVar, Iterator, overload, Callable
 from types import ModuleType
-from math import log as ln, ceil
+from math import ceil
 import operator
 from ._numerics import null_space
 from ._backend import get_backend, as_float_array
-from gaspype._phys_data import atomic_weights, db_reader
+from gaspype._phys_data import atomic_weights, db_reader, SpeciesData
 import re
 import pkgutil
 from .constants import R, epsy, p0
 from .typing import FloatArray, NDFloat, Shape, ArrayIndices
 
 T = TypeVar('T', 'fluid', 'elements')
+_SpeciesSystem = TypeVar('_SpeciesSystem', bound='species_system')
 
 _data = pkgutil.get_data(__name__, 'data/therm_data.bin')
 assert _data is not None, 'Could not load thermodynamic data'
 _species_db = db_reader(_data)
 
+# Condensed phase species (solids and liquids) are kept in a separate database
+# since they can not be part of a fluid_system
+_data = pkgutil.get_data(__name__, 'data/therm_data_condensed.bin')
+assert _data is not None, 'Could not load thermodynamic data for condensed species'
+_condensed_species_db = db_reader(_data)
 
-def species(pattern: str = '*', element_names: str | list[str] = [], use_regex: bool = False) -> list[str]:
+
+def species_properties(species_data: SpeciesData, t: FloatArray, np: Any = np) -> tuple[FloatArray, FloatArray, FloatArray, FloatArray]:
+    """Calculate the thermodynamic properties of a single species from
+    its NASA9 polynomials.
+
+    Args:
+        species_data: Thermodynamic data of the species
+        t: Temperature in Kelvin
+        np: Array namespace of t
+
+    Returns:
+        Tuple of the isobaric molar heat capacity in J/mol/K, the molar enthalpy
+        in J/mol, the molar entropy in J/mol/K and the gibbs free energy divided
+        by RT (dimensionless). The values are nan for temperatures outside of
+        the temperature range of the species.
+    """
+    assert species_data.model == 9, 'Only NASA9 polynomials are supported'
+    ln_t = np.log(t)
+    cp = h = s = t * np.nan
+
+    for t1, t2, a in zip(species_data.t_range[:-1], species_data.t_range[1:], species_data.data):
+        in_range = (t2 >= t) & (t >= t1)
+        cp = np.where(in_range, R * (a[0]*t**-2 + a[1]*t**-1 + a[2] + a[3]*t
+                                     + a[4]*t**2 + a[5]*t**3 + a[6]*t**4), cp)
+        h = np.where(in_range, R*t * (-a[0]*t**-2 + a[1]*ln_t/t + a[2]
+                                      + a[3]/2*t + a[4]/3*t**2 + a[5]/4*t**3
+                                      + a[6]/5*t**4 + a[7]/t), h)
+        s = np.where(in_range, R * (-a[0]/2*t**-2 - a[1]*t**-1 + a[2]*ln_t
+                                    + a[3]*t + a[4]/2*t**2 + a[5]/3*t**3
+                                    + a[6]/4*t**4 + a[8]), s)
+
+    return cp, h, s, (h / t - s) / R
+
+
+def species(pattern: str = '*', element_names: str | list[str] = [], use_regex: bool = False,
+            condensed: bool = False) -> list[str]:
     """Returns a alphabetically sorted list of all available species
     filtered by a pattern if supplied
 
@@ -30,6 +71,8 @@ def species(pattern: str = '*', element_names: str | list[str] = [], use_regex: 
         element_names: restrict results to species that contain only the specified elements.
             The elements can be supplied as list of strings or as comma separated string.
         use_regex: using regular expression for the pattern
+        condensed: list the condensed phase species (solids and liquids), which
+            are available for gaspype.activity, instead of the gas phase species
 
     Returns:
         List of species
@@ -50,48 +93,60 @@ def species(pattern: str = '*', element_names: str | list[str] = [], use_regex: 
         pattern = pattern.replace('$', '(' + el_pattern + ')')
         pattern = '^' + pattern + '(,.*)?$'
 
+    db = _condensed_species_db if condensed else _species_db
+
     if element_names == []:
-        return [sn for sn in _species_db.names if re.fullmatch(pattern, sn)]
+        return [sn for sn in db.names if re.fullmatch(pattern, sn)]
     else:
         return [
-            s.name for s in _species_db
+            s.name for s in db
             if re.fullmatch(pattern, s.name) and
             (len(elements) == 0 or set(s.composition.keys()).issubset(elements))]
 
 
-class fluid_system:
-    """A class to represent a fluid_system defined by a set of selected species.
+class species_system:
+    """A class to represent the thermodynamic data of a set of selected
+    species. In contrast to a fluid_system the species can be gas phase
+    species as well as condensed phase species (solids and liquids,
+    see gaspype.species(condensed=True)), therefore it can not be used
+    for fluids. A species_system with a single species can be used as
+    substance for gaspype.activity.
 
     Attributes:
-        species_names (list[str]): List of selected species in the fluid_system
-        array_molar_mass (FloatArray): Array of the molar masses of the species in the fluid_system
-        array_element_composition (FloatArray): Array of the element composition of the species in the fluid_system.
+        species (list[str]): List of selected species in the species_system
+        elements (list[str]): List of the elements of the species
+        array_molar_mass (FloatArray): Array of the molar masses of the species in the species_system
+        array_species_elements (FloatArray): Array of the element composition of the species in the species_system.
             Dimension is: (number of species, number of elements)
-        array_atomic_mass (FloatArray): Array of the atomic masses of the elements in the fluid_system
+        array_atomic_mass (FloatArray): Array of the atomic masses of the elements in the species_system
         np (ModuleType): Array namespace of the backend, used for all arrays and calculations
-            of the fluid_system and of the fluids and elements based on it
+            of the species_system
         device (Any): JAX device of the arrays or None for the default device
     """
 
+    # Databases to search for the species
+    _databases: tuple[db_reader, ...] = (_condensed_species_db, _species_db)
+    # Value of the properties outside of the temperature range of a species
+    _out_of_range_value: float = float('nan')
+
     def __init__(self, species: list[str] | str, t_min: int = 250, t_max: int = 2000,
                  backend: str | ModuleType = 'numpy', device: Any = None):
-        """Instantiates a fluid_system.
+        """Instantiates a species_system.
 
         Args:
             species: List of species names to be available in the constructed
-                fluid_system (as list of strings or a comma separated string)
+                species_system (as list of strings or a comma separated string)
             t_min: Lower bound of the required temperature range in Kelvin
             t_max: Upper bound of the required temperature range in Kelvin
-            backend: Array library used for the fluid_system and for all fluids
-                and elements based on it: 'numpy', 'jax' or the module
-                of a NumPy compatible array library (e.g. jax.numpy)
+            backend: Array library used for the species_system: 'numpy', 'jax'
+                or the module of a NumPy compatible array library (e.g. jax.numpy)
             device: Optional device for the JAX backend: A JAX device or
                 a string like 'cpu', 'gpu' or 'gpu:1'
         """
         if isinstance(species, str):
             species = [s.strip() for s in species.split(',')]
 
-        temperature_base_points = range(int(t_min), ceil(t_max))
+        temperature_base_points = np.arange(int(t_min), ceil(t_max), dtype=float)
 
         data_shape = (len(temperature_base_points), len(species))
         self._cp_array = np.zeros(data_shape)
@@ -105,29 +160,19 @@ class fluid_system:
         self.species = species
         self.active_species = species  # for backward compatibility
         element_compositions: list[dict[str, int]] = list()
+        self._species_compositions = element_compositions
+        self._ref_strings: list[str] = list()
 
         for i, s in enumerate(species):
-            species_data = _species_db.read(s)
+            species_data = next((d for d in (db.read(s) for db in self._databases) if d), None)
             if not species_data:
                 raise Exception(f'Species {s} not found')
             element_compositions.append(species_data.composition)
+            self._ref_strings.append(species_data.ref_string)
 
-            assert species_data.model == 9, 'Only NASA9 polynomials are supported'
-
-            for t1, t2, a in zip(species_data.t_range[:-1], species_data.t_range[1:], species_data.data):
-
-                for j, T in enumerate(temperature_base_points):
-                    if t2 >= T >= t1:
-                        self._cp_array[j, i] = R * (a[0]*T**-2 + a[1]*T**-1 + a[2] + a[3]*T
-                                                    + a[4]*T**2 + a[5]*T**3 + a[6]*T**4)
-                        self._h_array[j, i] = R*T * (-a[0]*T**-2 + a[1]*ln(T)/T + a[2]
-                                                     + a[3]/2*T + a[4]/3*T**2 + a[5]/4*T**3
-                                                     + a[6]/5*T**4 + a[7]/T)
-                        self._s_array[j, i] = R * (-a[0]/2*T**-2 - a[1]*T**-1 + a[2]*ln(T)
-                                                   + a[3]*T + a[4]/2*T**2 + a[5]/3*T**3
-                                                   + a[6]/4*T**4 + a[8])
-                        #self._g_array[j, i] = self._h_array[j, i] - self._s_array[j, i] * T
-                        self._g_rt_array[j, i] = (self._h_array[j, i] / T - self._s_array[j, i]) / R
+            properties = species_properties(species_data, temperature_base_points)
+            for prop_array, prop in zip([self._cp_array, self._h_array, self._s_array, self._g_rt_array], properties):
+                prop_array[:, i] = np.nan_to_num(prop, nan=self._out_of_range_value)
 
             # TODO: Check if temperature range is not available
             # print(f'Warning: temperature ({T}) out of range for {s}')
@@ -138,16 +183,14 @@ class fluid_system:
         self.array_atomic_mass: FloatArray = np.array([atomic_weights[el] for el in self.elements]) * 1e-3  # kg/mol
         self.array_molar_mass: FloatArray = np.sum(self.array_atomic_mass * self.array_species_elements, axis=-1)  # kg/mol
 
-        self.array_stoichiometric_coefficients: FloatArray = np.array(null_space(self.array_species_elements.T), dtype=NDFloat).T
-
         if self.np is not np:
             for name in ['_cp_array', '_h_array', '_s_array', '_g_rt_array', 'array_species_elements',
-                         'array_atomic_mass', 'array_molar_mass', 'array_stoichiometric_coefficients']:
+                         'array_atomic_mass', 'array_molar_mass']:
                 setattr(self, name, self._asarray(getattr(self, name)))
 
     def _asarray(self, a: Any) -> Any:
         """Convert a scalar, list or array to a floating point array of
-        the backend and on the device of the fluid system"""
+        the backend and on the device of the species system"""
         return as_float_array(a, self.np, self.device)
 
     def get_species_h(self, t: float | FloatArray) -> FloatArray:
@@ -204,11 +247,60 @@ class fluid_system:
         Returns:
             String with the references
         """
-        return '\n'.join([f'{s:<12}: {_species_db[s].ref_string}' for s in self.species])
+        return '\n'.join([f'{s:<12}: {ref}' for s, ref in zip(self.species, self._ref_strings)])
 
-    def __add__(self, other: 'fluid_system') -> 'fluid_system':
+    def __add__(self: _SpeciesSystem, other: _SpeciesSystem) -> _SpeciesSystem:
         assert isinstance(other, self.__class__)
         return self.__class__(self.species + other.species, backend=self.np, device=self.device)
+
+    def __repr__(self) -> str:
+        return ('Species system\n    Species:  ' + ', '.join(self.species) +
+                '\n    Elements: ' + ', '.join(self.elements))
+
+
+class fluid_system(species_system):
+    """A class to represent a fluid_system defined by a set of selected species.
+
+    Attributes:
+        species (list[str]): List of selected species in the fluid_system
+        elements (list[str]): List of the elements of the species
+        array_molar_mass (FloatArray): Array of the molar masses of the species in the fluid_system
+        array_species_elements (FloatArray): Array of the element composition of the species in the fluid_system.
+            Dimension is: (number of species, number of elements)
+        array_atomic_mass (FloatArray): Array of the atomic masses of the elements in the fluid_system
+        array_stoichiometric_coefficients (FloatArray): Array of the stoichiometric coefficients of a
+            minimal set of reactions between the species. Dimension is: (number of reactions, number of species)
+        np (ModuleType): Array namespace of the backend, used for all arrays and calculations
+            of the fluid_system and of the fluids and elements based on it
+        device (Any): JAX device of the arrays or None for the default device
+    """
+
+    # Only gas phase species can be part of a fluid
+    _databases = (_species_db,)
+    _out_of_range_value = 0.0
+
+    def __init__(self, species: list[str] | str, t_min: int = 250, t_max: int = 2000,
+                 backend: str | ModuleType = 'numpy', device: Any = None):
+        """Instantiates a fluid_system.
+
+        Args:
+            species: List of species names to be available in the constructed
+                fluid_system (as list of strings or a comma separated string)
+            t_min: Lower bound of the required temperature range in Kelvin
+            t_max: Upper bound of the required temperature range in Kelvin
+            backend: Array library used for the fluid_system and for all fluids
+                and elements based on it: 'numpy', 'jax' or the module
+                of a NumPy compatible array library (e.g. jax.numpy)
+            device: Optional device for the JAX backend: A JAX device or
+                a string like 'cpu', 'gpu' or 'gpu:1'
+        """
+        super().__init__(species, t_min, t_max, backend, device)
+
+        species_elements = np.array([[ec.get(el, 0.0) for el in self.elements] for ec in self._species_compositions])
+        self.array_stoichiometric_coefficients: FloatArray = np.array(null_space(species_elements.T), dtype=NDFloat).T
+
+        if self.np is not np:
+            self.array_stoichiometric_coefficients = self._asarray(self.array_stoichiometric_coefficients)
 
     def __repr__(self) -> str:
         return ('Fluid system\n    Species:  ' + ', '.join(self.species) +
