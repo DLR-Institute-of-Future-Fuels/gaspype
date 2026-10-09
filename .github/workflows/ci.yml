@@ -32,6 +32,13 @@ jobs:
         if [ "${{ matrix.python-version }}" = "3.13" ]; then
           python -m pip install cffconvert
         fi
+        if [ "${{ matrix.python-version }}" = "3.12" ] || [ "${{ matrix.python-version }}" = "3.13" ]; then
+          python -m pip install -e .[jax]
+        fi
+
+    - name: Check that JAX is available for the JAX tests
+      if: ${{ matrix.python-version == '3.12' || matrix.python-version == '3.13' }}
+      run: python -c "import jax; print(jax.__version__)"
 
     - name: Validate CITATION.cff
       if: ${{ matrix.python-version == '3.13' }}
