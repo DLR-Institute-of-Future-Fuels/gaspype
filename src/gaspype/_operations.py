@@ -19,6 +19,7 @@ def stack(arrays: list[T], axis: int = 0) -> T:
     a0 = arrays[0]
     assert all(a.fs == a0.fs for a in arrays), 'All objects must have the same fluid system'
     assert axis <= len(a0.shape), f'Axis must be smaller or equal to len(shape) ({len(a0.shape)})'
+    np = a0.fs.np
     return a0.__class__(np.stack(
         [a.array_elemental_composition if isinstance(a, elements) else a.array_composition for a in arrays],
         axis=axis), a0.fs)
@@ -37,6 +38,7 @@ def concat(arrays: list[T], axis: int = 0) -> T:
     a0 = arrays[0]
     assert all(f.fs == a0.fs for f in arrays), 'All fluid objects must have the same fluid system'
     assert axis < len(a0.shape), f'Axis must be smaller than shape len({a0.shape})'
+    np = a0.fs.np
     return a0.__class__(np.concatenate(
         [a.array_elemental_composition if isinstance(a, elements) else a.array_composition for a in arrays],
         axis=axis), a0.fs)

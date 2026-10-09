@@ -9,7 +9,8 @@ F: Faraday constant (C/mol)
 p0: Standard pressure 1e5 Pa
 t0: Standard temperature 298.15 K (25 °C)
 p_atm: Standard atmosphere 1 atm = 101325 Pa
-epsy: Small value for numerical stability (1e-18)
+epsy: Small value for numerical stability (1e-30). It must stay well above
+    the smallest float32 number (1e-38) since its reciprocal is calculated.
 """
 
 
