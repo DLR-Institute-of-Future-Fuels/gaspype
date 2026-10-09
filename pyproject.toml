@@ -44,7 +44,8 @@ dev = [
     "cantera",
     "pyyaml>=6.0.1",
     "types-PyYAML",
-    "matplotlib"
+    "matplotlib",
+    "python-ternary"
 ]
 jax = [
     "jax"
@@ -56,6 +57,7 @@ doc_build = [
   "myst-parser",
   "pandas",
   "matplotlib",
+  "python-ternary",
   "ipykernel==6.29",
   "jupyter==1.1",
   "nbconvert==7.16",
