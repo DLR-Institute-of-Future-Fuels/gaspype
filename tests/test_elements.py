@@ -40,3 +40,19 @@ def test_elements_from_fluid():
 def test_elements_mass():
     el = gp.elements({'Si': 1, 'O': 2})
     assert el.get_mass() == pytest.approx(0.0601, abs=0.0001)
+
+
+def test_elements_division():
+    fs = gp.fluid_system('H2, O2, H2O')
+    el = gp.elements({'H': 2, 'O': 1}, fs)
+
+    assert (el / 2).get_elemental_composition() == {'H': 1.0, 'O': 0.5}
+    assert (el / np.array([2.0, 4.0])).get_n('H') == pytest.approx([1.0, 0.5])
+
+
+def test_elements_from_dict_with_shape():
+    fs = gp.fluid_system('H2, O2, H2O')
+    el = gp.elements({'H': 2, 'O': 1}, fs, shape=(4, 2))
+
+    assert el.shape == (4, 2)
+    assert el.get_n('H') == pytest.approx(np.full((4, 2), 2.0))
