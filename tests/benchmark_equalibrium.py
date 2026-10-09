@@ -3,6 +3,12 @@ import gaspype as gp
 import numpy as np
 import time
 from gaspype import fluid_system
+from benchmark_jax import jax_devices, to_device, measure
+
+try:
+    import jax
+except ImportError:
+    pass
 
 try:
     import cea
@@ -93,3 +99,32 @@ for i in range(5):
     print("  Gaspype :", eq_gaspype.array_composition[i])
     if CEA_AVAILABLE:
         print("  CEA     :", eq_cea[i])
+
+# -----------------------
+# Gaspype with NumPy and JAX for larger numbers of states
+# -----------------------
+devices = jax_devices()
+
+print("\nGaspype equilibrium run time for increasing numbers of states:")
+for n_states in [1_000, 100_000, 1_000_000]:
+    temperatures = np.linspace(300, 1000, n_states) + 273.15
+
+    t0 = time.perf_counter()
+    eq_numpy = gp.equilibrium(fluid, t=temperatures, p=pressure).array_composition
+    elapsed_numpy = time.perf_counter() - t0
+    print(f"{n_states:9} states, NumPy:          {elapsed_numpy:8.4f} s")
+
+    for name, device in devices:
+        # The backend and the device are selected by the fluid system
+        fluid_jax = gp.fluid(composition, fs=fluid_system(species_to_track, backend='jax', device=device))
+        temperatures_jax = to_device(temperatures, device)
+
+        def equilibrium_composition(t):
+            return gp.equilibrium(fluid_jax, t=t, p=pressure).array_composition
+
+        for label, func in [(f"JAX on {name}:    ", equilibrium_composition),
+                            (f"JAX jit on {name}:", jax.jit(equilibrium_composition))]:
+            first, elapsed_jax, eq_jax = measure(func, temperatures_jax, repeats=2)
+            assert np.allclose(eq_jax, eq_numpy, rtol=1e-6, atol=1e-12)
+            print(f"{n_states:9} states, {label} {elapsed_jax:8.4f} s (first call {first:.4f} s, "
+                  f"{elapsed_numpy / elapsed_jax:.1f} x the speed of NumPy)")
