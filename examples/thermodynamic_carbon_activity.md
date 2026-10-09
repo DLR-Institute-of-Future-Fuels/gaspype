@@ -29,28 +29,13 @@ ratio = np.linspace(0.01, 1.5, num=128)
 fl = gp.fluid({'CH4': 1}, fs) + ratio * gp.fluid({'H2O': 1}, fs)
 ```
 
-gaspype.carbon_activity supports currently only 0D fluids therefore we build this helper function:
+The shapes of the fluid and the temperature are broadcast against each other.
+So we can calculate the carbon activity for all compositions times all
+temperatures in t_range with a single call:
 
 
 ```python
-def partial_c_activity(fl: gp.fluid, t: float, p: float):
-    fls = fl.array_composition.shape
-
-    eq_fl = gp.equilibrium(fl, t, p)
-
-    ret = np.zeros(fls[0])
-    for i in range(fls[0]):
-        ret[i] = gp.carbon_activity(gp.fluid(eq_fl.array_composition[i,:], fs), t, p)
-
-    return ret
-```
-
-Now we use the helper function to calculate the carbon activitx for all
-compositions in equilibrium_h2o times all temperatures in t_range:
-
-
-```python
-carbon_activity = np.vstack([partial_c_activity(fl, tc + 273.15, p) for tc in t_range])
+carbon_activity = gp.carbon_activity(fl, t_range[:, None] + 273.15, p)
 ```
 
 Plot carbon activities, a activity of > 1 means there is thermodynamically the formation of sold carbon favored.
@@ -72,7 +57,7 @@ Let's do the equilibrium calculation for methane CO2 mixtures as well:
 
 ```python
 fl_co2 = gp.fluid({'CH4': 1}, fs) + ratio * gp.fluid({'CO2': 1}, fs)
-carbon_activity_co2 = np.vstack([partial_c_activity(fl_co2, tc + 273.15, p) for tc in t_range])
+carbon_activity_co2 = gp.carbon_activity(fl_co2, t_range[:, None] + 273.15, p)
 ```
 
 And plot carbon activities over the CO2 to CH4 ratio:
@@ -87,4 +72,17 @@ ax.set_yscale('log')
 ax.plot(ratio, carbon_activity_co2.T)
 ax.hlines(1, np.min(ratio), np.max(ratio), colors='k', linestyles='dashed')
 ax.legend([f'{tc} °C' for tc in t_range])
+```
+
+gaspype.carbon_activity is a shortcut for the more general function
+gaspype.activity, which calculates the activity of any substance in the
+equilibrated gas. Condensed species (solids and liquids) can be listed with
+gaspype.species(condensed=True). For example the activity of liquid water
+shows if steam condenses, here for a fuel gas at 50 °C:
+
+
+```python
+fl_wet = gp.fluid({'H2': 0.8, 'H2O': 0.2}, fs)
+
+gp.activity(fl_wet, 50 + 273.15, p, 'H2O(L)')
 ```
