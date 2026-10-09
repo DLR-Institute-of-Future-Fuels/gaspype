@@ -5,8 +5,12 @@ import os
 
 
 def main():
-    input_file = sys.argv[1]
-    output_file = sys.argv[2]
+    args = [a for a in sys.argv[1:] if a != '--double']
+    # With --double the polynomial coefficients are stored as 64 bit floats
+    # instead of 32 bit floats
+    float_format = 'd' if '--double' in sys.argv[1:] else 'f'
+    input_file = args[0]
+    output_file = args[1]
 
     assert not output_file.endswith('.yml') and not output_file.endswith('.yaml'), 'Binary output file should not have yaml-extension'
 
@@ -46,7 +50,7 @@ def main():
             if any(len(d) != model for d in dat['thermo']['data']):
                 print(f"Warning: Data length mismatch for {dat['name']}. Expected {model} coefficients, got {len(dat['thermo']['data'][0])}.")
 
-            format_string = '<' + '2sB' * composition_count + f'{len(temperatures)}f{len(data_vals)}f{len(ref_string)}s'
+            format_string = '<' + '2sB' * composition_count + f'{len(temperatures)}f{len(data_vals)}{float_format}{len(ref_string)}s'
 
             body = struct.pack(format_string, *(composition + temperatures + data_vals + [ref_string]))
             body_list.append(body)
@@ -58,7 +62,7 @@ def main():
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
     with open(output_file, 'wb') as f:
-        f.write(b'gapy')
+        f.write(b'gapd' if float_format == 'd' else b'gapy')
         f.write(struct.pack('<I', len(species_names)))
         f.write(species_names.encode('ASCII'))
         for dat in header_list:

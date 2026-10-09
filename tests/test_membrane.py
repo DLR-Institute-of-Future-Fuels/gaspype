@@ -3,7 +3,6 @@ import gaspype as gp
 import pytest
 
 
-@pytest.mark.skip(reason='oxygen_partial_pressure is not ported to the array API yet')
 def test_oxygen_partial_pressure():
     # Compare equalibrium calculation with oxygen_partial_pressure function
     fs = gp.fluid_system('CO, CO2, H2, O2, H2O, N2')

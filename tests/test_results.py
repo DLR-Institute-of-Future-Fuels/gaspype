@@ -92,7 +92,6 @@ def test_equilibrium():
             assert result_values == pytest.approx(reference_values, abs=1e-3, rel=0.01)
 
 
-@pytest.mark.skip(reason='carbon_activity is not ported to the array API yet')
 def test_carbon():
     # Compare if solid carbon is in equilibrium present to Cycle-Tempo results
     df = pd.read_csv('tests/test_data/cycle_temp_matlab_ref.csv', sep=';', decimal=',').fillna(0)

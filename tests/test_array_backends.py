@@ -246,3 +246,38 @@ def test_jax_equilibrium_transformations():
     finite_difference = (equilibrium_composition(t0 + dt) - equilibrium_composition(t0 - dt)) / (2 * dt)
     for jacobian in [jax.jacrev(equilibrium_composition), jax.jit(jax.jacfwd(equilibrium_composition))]:
         assert np.asarray(jacobian(jnp.asarray(t0))) == pytest.approx(finite_difference, rel=1e-5, abs=1e-9)
+
+
+def test_activity():
+    ref = gp.fluid(composition, fs)
+    fl = gp.fluid(composition, fs_jax)
+
+    assert is_same(gp.activity(fl, t, p, 'C(gr)'), gp.activity(ref, t, p, 'C(gr)'))
+    assert is_same(gp.carbon_activity(fl, t, p), gp.carbon_activity(ref, t, p))
+    assert is_same(gp.oxygen_partial_pressure(fl, t, p), gp.oxygen_partial_pressure(ref, t, p))
+
+    t_jax = jnp.asarray(t)
+    assert is_same(jax.jit(lambda t: gp.carbon_activity(fl, t, p))(t_jax), gp.carbon_activity(ref, t, p))
+
+    with jax.enable_x64(False), warnings.catch_warnings():
+        warnings.simplefilter('error')
+        fl_f32 = gp.fluid(composition, gp.fluid_system(species, backend='jax'))
+        results = [gp.carbon_activity(fl_f32, t, p), gp.oxygen_partial_pressure(fl_f32, t, p)]
+
+    for result, reference in zip(results, [gp.carbon_activity(ref, t, p), gp.oxygen_partial_pressure(ref, t, p)]):
+        assert result.dtype == np.float32
+        assert np.asarray(result) == pytest.approx(reference, rel=1e-3)
+
+
+def test_activity_species_system():
+    ref = gp.fluid(composition, fs)
+    fl = gp.fluid(composition, fs_jax)
+    carbon = gp.species_system('C(gr)', backend='jax')
+
+    assert isinstance(carbon.get_species_g_rt(t), jax.Array)
+    assert is_same(gp.activity(fl, t, p, carbon), gp.activity(ref, t, p, gp.species_system('C(gr)')))
+    assert is_same(jax.jit(lambda t: gp.activity(fl, t, p, carbon))(jnp.asarray(t)),
+                   gp.activity(ref, t, p, gp.species_system('C(gr)')))
+
+    with pytest.raises(AssertionError):
+        gp.activity(ref, t, p, carbon)

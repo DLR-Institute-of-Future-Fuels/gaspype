@@ -5,8 +5,12 @@ import sys
 
 
 def main():
-    output_file = sys.argv[1]
-    input_files = sys.argv[2:]
+    args = [a for a in sys.argv[1:] if a != '--condensed']
+    # With --condensed the condensed phase species (solids and liquids) of
+    # the XML files are selected instead of the gas phase species
+    condensed = '--condensed' in sys.argv[1:]
+    output_file = args[0]
+    input_files = args[1:]
 
     inp_therm_prop: list[dict] = []
 
@@ -14,7 +18,7 @@ def main():
         for file_name in glob.glob(glop_filter):
             print(f'Processing file: {file_name}...')
             if file_name.endswith('.xml'):
-                inp_therm_prop += get_xml_data(file_name)
+                inp_therm_prop += get_xml_data(file_name, condensed)
             else:
                 with open(file_name, 'r') as f:
                     inp_therm_prop += yaml.safe_load(f)['species']
@@ -43,13 +47,14 @@ def main():
             f.write('    data:\n')
             for d in species['thermo']['data']:
                 f.write(f'    - {d}\n')
-            f.write('    ' + yaml.dump({'note': species['thermo']['note']}, default_flow_style=False))
+            f.write('    ' + yaml.dump({'note': species['thermo']['note']}, default_flow_style=False, width=1000))
 
     print('Added: ', ', '.join(sorted(added_species_names)))
 
 
-def get_xml_data(file_name: str) -> list[dict]:
+def get_xml_data(file_name: str, condensed: bool = False) -> list[dict]:
     xml_data_list: list[dict] = []
+    xml_data_index: dict[str, dict] = {}
     tree = ET.parse(file_name)
     root = tree.getroot()
     for i, child in enumerate(root):
@@ -61,18 +66,37 @@ def get_xml_data(file_name: str) -> list[dict]:
         data = [[float(v.text) for v in tr] for tr in values_temp]
 
         is_gas = child.find('condensed').text == 'False'
+        name = child.attrib['inp_file_name']
+        note = child.find('comment').text
 
-        if is_gas:
+        if is_gas == condensed:
+            continue
+
+        if not all(elements.values()):
+            # Non-stoichiometric species like Fe.947O can not be represented
+            # with integer element counts
+            print(f'Skipping {name}: element counts {elements}')
+            continue
+
+        if name in xml_data_index and xml_data_index[name]['temperature-ranges'][-1] == t_ranges[0]:
+            # Some condensed species are split in multiple entries at a
+            # lambda transition, these are merged to a single species
+            thermo = xml_data_index[name]
+            thermo['temperature-ranges'] += t_ranges[1:]
+            thermo['data'] += data
+            thermo['note'] += ' / ' + note
+        else:
             xml_data_list.append({
-                'name': child.attrib['inp_file_name'],
+                'name': name,
                 'composition': elements,
                 'thermo': {
                     'model': 'NASA9',
                     'temperature-ranges': t_ranges,
                     'data': data,
-                    'note': child.find('comment').text
+                    'note': note
                 }
             })
+            xml_data_index.setdefault(name, xml_data_list[-1]['thermo'])
     return xml_data_list
 
 

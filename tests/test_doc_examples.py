@@ -3,9 +3,7 @@ from glob import glob
 import importlib
 import os
 
-# Examples using oxygen_partial_pressure or carbon_activity, which
-# are not ported to the array API yet
-skipped_examples = ['soec_syngas', 'sofc_methane', 'thermodynamic_carbon_activity']
+skipped_examples: list[str] = []
 
 
 def test_readme():

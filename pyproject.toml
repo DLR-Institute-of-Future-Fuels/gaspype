@@ -33,7 +33,7 @@ version_file = "src/gaspype/_version.py"
 where = ["src"]
 
 [tool.setuptools.package-data]
-gaspype = ["data/therm_data.bin", "py.typed"]
+gaspype = ["data/therm_data.bin", "data/therm_data_condensed.bin", "py.typed"]
 
 [project.optional-dependencies]
 dev = [

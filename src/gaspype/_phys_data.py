@@ -55,8 +55,10 @@ class db_reader():
         Args:
             inp_data: The binary data of the gas phase species database.
         """
-        assert inp_data[:4] == b'gapy', 'Unknown data format'
+        assert inp_data[:4] in (b'gapy', b'gapd'), 'Unknown data format'
         self._bin_data = inp_data
+        # Polynomial coefficients are stored as 32 bit ('gapy') or 64 bit ('gapd') floats
+        self._float_format = 'd' if inp_data[:4] == b'gapd' else 'f'
         self._name_lengths = struct.unpack('<I', self._bin_data[4:8])[0]
         species_names = split_on_space(self._bin_data, db_reader.header_len, db_reader.header_len + self._name_lengths)
         self._index = {s: i for i, s in enumerate(species_names)}
@@ -105,9 +107,8 @@ class db_reader():
         ref_string_len = head[4]
 
         td_data_num = (temperature_count - 1) * model
-        data_len = composition_count * 3 + (temperature_count + td_data_num) * 4 + ref_string_len
-
-        format_string = '<' + '2sB' * composition_count + f'{temperature_count}f{td_data_num}f{ref_string_len}s'
+        format_string = '<' + '2sB' * composition_count + f'{temperature_count}f{td_data_num}{self._float_format}{ref_string_len}s'
+        data_len = struct.calcsize(format_string)
 
         bindat = struct.unpack(format_string, self._bin_data[offset:offset + data_len])
         comp = {bindat[i * 2].strip().decode('ASCII'): bindat[i * 2 + 1] for i in range(composition_count)}
