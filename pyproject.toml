@@ -46,6 +46,9 @@ dev = [
     "types-PyYAML",
     "matplotlib"
 ]
+jax = [
+    "jax"
+]
 doc_build = [
   "sphinx",
   "pydata_sphinx_theme",
@@ -67,6 +70,10 @@ warn_unused_configs = true
 check_untyped_defs = true
 no_implicit_optional = true
 show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = ["jax", "jax.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 minversion = "6.0"
