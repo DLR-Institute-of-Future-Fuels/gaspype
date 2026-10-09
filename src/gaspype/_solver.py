@@ -3,6 +3,7 @@ import numpy as np
 from ._main import elements, fluid, fluid_system
 from .typing import NDFloat, FloatArray
 from .constants import p0, epsy
+from ._backend import iterate
 
 if TYPE_CHECKING:
     def minimize(*a: Any, **b: Any) -> dict[str, FloatArray]:
@@ -73,7 +74,8 @@ def equilibrium_gmin(fs: fluid_system, element_composition: FloatArray,
         # Calculate G/(R*T)
         return np.sum(n * (grt + np.log(p_rel * n / np.sum(n) + epsy)))
 
-    element_composition, t, p = _broadcast_inputs(element_composition, t, p)
+    assert fs.np is np, 'The gibs minimization solver requires a fluid system with the NumPy backend'
+    element_composition, t, p = _broadcast_inputs(fs, element_composition, t, p)
     bnds = [(0, None) for _ in fs.species]
     start_composition_array = np.ones_like(fs.species, dtype=float)
 
@@ -88,12 +90,13 @@ def equilibrium_gmin(fs: fluid_system, element_composition: FloatArray,
     return sol
 
 
-def _broadcast_inputs(element_composition: FloatArray, t: float | FloatArray,
+def _broadcast_inputs(fs: fluid_system, element_composition: FloatArray, t: float | FloatArray,
                       p: float | FloatArray) -> tuple[FloatArray, FloatArray, FloatArray]:
     """Broadcast element composition (..., n_elements), t and p to a common batch shape"""
-    element_composition = np.asarray(element_composition, dtype=NDFloat)
-    t_arr = np.asarray(t, dtype=NDFloat)
-    p_arr = np.asarray(p, dtype=NDFloat)
+    np = fs.np
+    element_composition = fs._asarray(element_composition)
+    t_arr = fs._asarray(t)
+    p_arr = fs._asarray(p)
     batch_shape = np.broadcast_shapes(element_composition.shape[:-1], t_arr.shape, p_arr.shape)
     return (np.broadcast_to(element_composition, batch_shape + element_composition.shape[-1:]),
             np.broadcast_to(t_arr, batch_shape),
@@ -117,7 +120,8 @@ def equilibrium_eq(fs: fluid_system, element_composition: FloatArray,
         Molar amounts of species with shape (..., n_species), where ... is the
         broadcast shape of element_composition[..., 0], t and p
     """
-    element_composition, t, p = _broadcast_inputs(element_composition, t, p)
+    np = fs.np
+    element_composition, t, p = _broadcast_inputs(fs, element_composition, t, p)
 
     a = fs.array_stoichiometric_coefficients  # (n_reactions, n_species)
     species_elements = fs.array_species_elements  # (n_species, n_elements)
@@ -156,18 +160,21 @@ def equilibrium_eq(fs: fluid_system, element_composition: FloatArray,
 
         return (np.concatenate([resid_eq, resid_ab], axis=-1), np.concatenate([j_eq, j_ab], axis=-2))
 
-    logn: FloatArray = species_max_log  # Set start values
+    # The residuals can not get smaller than the precision of the data type
+    tol = max(1e-10, 1e3 * float(np.finfo(species_max_log.dtype).eps))
 
-    for _ in range(30):
+    def newton_step(logn: FloatArray) -> tuple[FloatArray, Any]:
         rF, J = residuals(logn)
 
         delta = np.linalg.solve(J, -rF[..., None])[..., 0]
 
-        logn = np.minimum(logn + delta, species_max_log + 1)
-
         # Iterate until all equilibria of the batch are converged
-        if np.all(np.linalg.norm(rF, axis=-1) < 1e-10):
-            break
+        converged = np.all(np.linalg.norm(rF, axis=-1) < tol)
+
+        return np.minimum(logn + delta, species_max_log + 1), converged
+
+    # Start values are the maximum possible amounts of the species
+    logn: FloatArray = iterate(newton_step, species_max_log, 30, np)
 
     n_eq: FloatArray = np.exp(logn) * el_max
     return n_eq
@@ -194,16 +201,12 @@ def equilibrium(f: fluid | elements, t: float | FloatArray, p: float | FloatArra
             return f
     else:
         if not m_shape:
-            def linalg_lstsq(array_elemental_composition: FloatArray, matrix: FloatArray) -> Any:
-                # TODO: np.dot(np.linalg.pinv(a), b) is eqivalent to lstsq(a, b).
-                # the constant np.linalg.pinv(a) can be precomputed for each fs.
-                return np.dot(np.linalg.pinv(matrix), array_elemental_composition)
-
-            # print('-->', f.array_elemental_composition.shape, f.fs.array_species_elements.transpose().shape)
-            composition = np.apply_along_axis(linalg_lstsq, -1, f.array_elemental_composition, f.fs.array_species_elements.transpose())
+            # Least squares solution of: species_elements.T @ composition = elemental_composition
+            # TODO: the constant pinv(species_elements) can be precomputed for each fs.
+            np = f.fs.np
+            composition = np.dot(f.array_elemental_composition, np.linalg.pinv(f.fs.array_species_elements))
             return fluid(composition, f.fs)
 
-    assert np.min(f.array_elemental_composition) >= 0, 'Input element fractions must be 0 or positive'
     composition = _equilibrium_solver(f.fs, f.array_elemental_composition, t, p)
     return fluid(composition, f.fs)
 

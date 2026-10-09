@@ -1,8 +1,11 @@
 import numpy as np
 from numpy.typing import NDArray
 from typing import Sequence, Any, TypeVar, Iterator, overload, Callable
+from types import ModuleType
 from math import log as ln, ceil
+import operator
 from ._numerics import null_space
+from ._backend import get_backend, as_float_array
 from gaspype._phys_data import atomic_weights, db_reader
 import re
 import pkgutil
@@ -65,9 +68,13 @@ class fluid_system:
         array_element_composition (FloatArray): Array of the element composition of the species in the fluid_system.
             Dimension is: (number of species, number of elements)
         array_atomic_mass (FloatArray): Array of the atomic masses of the elements in the fluid_system
+        np (ModuleType): Array namespace of the backend, used for all arrays and calculations
+            of the fluid_system and of the fluids and elements based on it
+        device (Any): JAX device of the arrays or None for the default device
     """
 
-    def __init__(self, species: list[str] | str, t_min: int = 250, t_max: int = 2000):
+    def __init__(self, species: list[str] | str, t_min: int = 250, t_max: int = 2000,
+                 backend: str | ModuleType = 'numpy', device: Any = None):
         """Instantiates a fluid_system.
 
         Args:
@@ -75,6 +82,11 @@ class fluid_system:
                 fluid_system (as list of strings or a comma separated string)
             t_min: Lower bound of the required temperature range in Kelvin
             t_max: Upper bound of the required temperature range in Kelvin
+            backend: Array library used for the fluid_system and for all fluids
+                and elements based on it: 'numpy', 'jax' or the module
+                of a NumPy compatible array library (e.g. jax.numpy)
+            device: Optional device for the JAX backend: A JAX device or
+                a string like 'cpu', 'gpu' or 'gpu:1'
         """
         if isinstance(species, str):
             species = [s.strip() for s in species.split(',')]
@@ -89,6 +101,7 @@ class fluid_system:
         self._g_rt_array = np.zeros(data_shape)
 
         self._t_offset = int(t_min)
+        self.np, self.device = get_backend(backend, device)
         self.species = species
         self.active_species = species  # for backward compatibility
         element_compositions: list[dict[str, int]] = list()
@@ -127,6 +140,16 @@ class fluid_system:
 
         self.array_stoichiometric_coefficients: FloatArray = np.array(null_space(self.array_species_elements.T), dtype=NDFloat).T
 
+        if self.np is not np:
+            for name in ['_cp_array', '_h_array', '_s_array', '_g_rt_array', 'array_species_elements',
+                         'array_atomic_mass', 'array_molar_mass', 'array_stoichiometric_coefficients']:
+                setattr(self, name, self._asarray(getattr(self, name)))
+
+    def _asarray(self, a: Any) -> Any:
+        """Convert a scalar, list or array to a floating point array of
+        the backend and on the device of the fluid system"""
+        return as_float_array(a, self.np, self.device)
+
     def get_species_h(self, t: float | FloatArray) -> FloatArray:
         """Get the molar enthalpies for all species in the fluid system
 
@@ -136,7 +159,7 @@ class fluid_system:
         Returns:
             Array with the enthalpies of each specie in J/mol
         """
-        return lookup(self._h_array, t, self._t_offset)
+        return lookup(self._h_array, self._asarray(t), self._t_offset, self.np)
 
     def get_species_s(self, t: float | FloatArray) -> FloatArray:
         """Get the molar entropies for all species in the fluid system
@@ -147,7 +170,7 @@ class fluid_system:
         Returns:
             Array with the entropies of each specie in J/mol/K
         """
-        return lookup(self._s_array, t, self._t_offset)
+        return lookup(self._s_array, self._asarray(t), self._t_offset, self.np)
 
     def get_species_cp(self, t: float | FloatArray) -> FloatArray:
         """Get the isobaric molar heat capacity for all species in the fluid system
@@ -158,7 +181,7 @@ class fluid_system:
         Returns:
             Array with the heat capacities of each specie in J/mol/K
         """
-        return lookup(self._cp_array, t, self._t_offset)
+        return lookup(self._cp_array, self._asarray(t), self._t_offset, self.np)
 
     # def get_species_g(self, t: float | NDArray[_Float]) -> NDArray[_Float]:
     #     return lookup(self._g_array, t, self._t_offset)
@@ -173,7 +196,7 @@ class fluid_system:
         Returns:
             Array of gibbs free energy divided by RT (dimensionless)
         """
-        return lookup(self._g_rt_array, t, self._t_offset)
+        return lookup(self._g_rt_array, self._asarray(t), self._t_offset, self.np)
 
     def get_species_references(self) -> str:
         """Get a string with the references for all fluids of the fluid system
@@ -185,7 +208,7 @@ class fluid_system:
 
     def __add__(self, other: 'fluid_system') -> 'fluid_system':
         assert isinstance(other, self.__class__)
-        return self.__class__(self.species + other.species)
+        return self.__class__(self.species + other.species, backend=self.np, device=self.device)
 
     def __repr__(self) -> str:
         return ('Fluid system\n    Species:  ' + ', '.join(self.species) +
@@ -232,8 +255,7 @@ class fluid:
             assert isinstance(composition, dict), 'fluid system must be specified if composition is not a dict'
             fs = fluid_system(list(composition.keys()))
 
-        if isinstance(composition, list):
-            composition = np.array(composition)
+        np = fs.np
 
         if isinstance(composition, dict):
             missing_species = [s for s in composition if s not in fs.species]
@@ -242,17 +264,17 @@ class fluid:
 
             species_composition = [composition[s] if s in composition.keys() else 0 for s in fs.species]
 
-            comp_array = np.array(species_composition, dtype=NDFloat)
+            comp_array = fs._asarray(species_composition)
             if shape is not None:
-                comp_array = comp_array * np.ones(list(shape) + [len(fs.species)], dtype=NDFloat)
+                comp_array = comp_array * np.ones((*shape, len(fs.species)))
 
         else:
             assert shape is None, 'specify shape by the shape of the composition array.'
-            assert composition.shape[-1] == len(fs.species), f'composition.shape[-1] ({composition.shape[-1]}) must be {len(fs.species)}'
-            comp_array = composition
+            comp_array = fs._asarray(composition)
+            assert comp_array.shape[-1] == len(fs.species), f'composition.shape[-1] ({comp_array.shape[-1]}) must be {len(fs.species)}'
 
         self.array_composition: FloatArray = comp_array
-        self.total: FloatArray | float = np.sum(self.array_composition, axis=-1, dtype=NDFloat)
+        self.total: FloatArray | float = np.sum(self.array_composition, axis=-1)
         self.array_fractions: FloatArray = self.array_composition / (np.expand_dims(self.total, -1) + epsy)
         self.shape: Shape = self.array_composition.shape[:-1]
         self.fs = fs
@@ -290,7 +312,8 @@ class fluid:
         Returns:
             Enthalpies in J/mol
         """
-        return np.sum(self.fs.get_species_h(t) * self.array_fractions, axis=-1, dtype=NDFloat)
+        np = self.fs.np
+        return np.sum(self.fs.get_species_h(t) * self.array_fractions, axis=-1)  # type: ignore[no-any-return]
 
     def get_H(self, t: float | FloatArray) -> FloatArray | float:
         """Get absolute enthalpy of the fluid at the given temperature
@@ -306,7 +329,8 @@ class fluid:
         Returns:
             Enthalpies in J
         """
-        return np.sum(self.fs.get_species_h(t) * self.array_composition, axis=-1, dtype=NDFloat)
+        np = self.fs.np
+        return np.sum(self.fs.get_species_h(t) * self.array_composition, axis=-1)  # type: ignore[no-any-return]
 
     def get_s(self, t: float | FloatArray, p: float | FloatArray) -> FloatArray | float:
         """Get molar entropy of the fluid at the given temperature and pressure
@@ -318,10 +342,11 @@ class fluid:
         Returns:
             Entropy in J/mol/K
         """
+        np = self.fs.np
         x = self.array_fractions
         s = self.fs.get_species_s(t)
 
-        return np.sum(x * (s - R * np.log(np.expand_dims(p / p0, -1) * x + epsy)), axis=-1, dtype=NDFloat)
+        return np.sum(x * (s - R * np.log(np.expand_dims(p / p0, -1) * x + epsy)), axis=-1)  # type: ignore[no-any-return]
 
     def get_S(self, t: float | FloatArray, p: float | FloatArray) -> FloatArray | float:
         """Get absolute entropy of the fluid at the given temperature and pressure
@@ -333,11 +358,12 @@ class fluid:
         Returns:
             Entropy in J/K
         """
+        np = self.fs.np
         x = self.array_fractions
         n = self.array_composition
         s = self.fs.get_species_s(t)
 
-        return np.sum(n * (s - R * np.log(np.expand_dims(p / p0, -1) * x + epsy)), axis=-1, dtype=NDFloat)
+        return np.sum(n * (s - R * np.log(np.expand_dims(p / p0, -1) * x + epsy)), axis=-1)  # type: ignore[no-any-return]
 
     def get_cp(self, t: float | FloatArray) -> FloatArray | float:
         """Get molar heat capacity at constant pressure
@@ -349,7 +375,8 @@ class fluid:
         Returns:
             Heat capacity in J/mol/K
         """
-        return np.sum(self.fs.get_species_cp(t) * self.array_fractions, axis=-1, dtype=NDFloat)
+        np = self.fs.np
+        return np.sum(self.fs.get_species_cp(t) * self.array_fractions, axis=-1)  # type: ignore[no-any-return]
 
     def get_g(self, t: float | FloatArray, p: float | FloatArray) -> FloatArray | float:
         """Get molar gibbs free energy (h - Ts)
@@ -363,10 +390,11 @@ class fluid:
         Returns:
             Gibbs free energy in J/mol
         """
+        np = self.fs.np
         x = self.array_fractions
         grt = self.fs.get_species_g_rt(t)
 
-        return R * t * np.sum(x * (grt + np.log(np.expand_dims(p / p0, -1) * x + epsy)), axis=-1, dtype=NDFloat)
+        return R * t * np.sum(x * (grt + np.log(np.expand_dims(p / p0, -1) * x + epsy)), axis=-1)  # type: ignore[no-any-return]
 
     def get_G(self, t: float | FloatArray, p: float | FloatArray) -> FloatArray | float:
         """Get absolute gibbs free energy (H - TS)
@@ -380,11 +408,12 @@ class fluid:
         Returns:
             Gibbs free energy in J
         """
+        np = self.fs.np
         x = self.array_fractions
         n = self.array_composition
         grt = self.fs.get_species_g_rt(t)
 
-        return R * t * np.sum(n * (grt + np.log(np.expand_dims(p / p0, -1) * x + epsy)), axis=-1, dtype=NDFloat)
+        return R * t * np.sum(n * (grt + np.log(np.expand_dims(p / p0, -1) * x + epsy)), axis=-1)  # type: ignore[no-any-return]
 
     def get_g_rt(self, t: float | FloatArray, p: float | FloatArray) -> FloatArray | float:
         """Get specific gibbs free energy divided by RT: g/R/T == (h/T-s)/R
@@ -398,10 +427,11 @@ class fluid:
         Returns:
             Gibbs free energy divided by RT (dimensionless)
         """
+        np = self.fs.np
         x = self.array_fractions
         grt = self.fs.get_species_g_rt(t)
 
-        return np.sum(x * (grt + np.log(np.expand_dims(p / p0, -1) * x + epsy)), axis=-1, dtype=NDFloat)
+        return np.sum(x * (grt + np.log(np.expand_dims(p / p0, -1) * x + epsy)), axis=-1)  # type: ignore[no-any-return]
 
     def get_v(self, t: float | FloatArray, p: float | FloatArray) -> FloatArray | float:
         """Get Absolute fluid volume
@@ -429,7 +459,8 @@ class fluid:
         Returns:
             Molar volume of the fluid in m³/mol
         """
-        return R / p * t
+        np = self.fs.np
+        return np.multiply(R / p, t)  # type: ignore[no-any-return]
 
     def get_mass(self) -> FloatArray | float:
         """Get Absolute fluid mass
@@ -437,7 +468,8 @@ class fluid:
         Returns:
             Mass of the fluid in kg
         """
-        return np.sum(self.array_composition * self.fs.array_molar_mass, axis=-1, dtype=NDFloat)
+        np = self.fs.np
+        return np.sum(self.array_composition * self.fs.array_molar_mass, axis=-1)  # type: ignore[no-any-return]
 
     def get_molar_mass(self) -> FloatArray | float:
         """Get molar fluid mass
@@ -445,7 +477,8 @@ class fluid:
         Returns:
             Mass of the fluid in kg/mol
         """
-        return np.sum(self.array_fractions * self.fs.array_molar_mass, axis=-1, dtype=NDFloat)
+        np = self.fs.np
+        return np.sum(self.array_fractions * self.fs.array_molar_mass, axis=-1)  # type: ignore[no-any-return]
 
     def get_density(self, t: float | FloatArray, p: float | FloatArray) -> FloatArray | float:
         """Get mass based fluid density
@@ -459,7 +492,8 @@ class fluid:
         Returns:
             Density of the fluid in kg/m³
         """
-        return np.sum(self.array_fractions * self.fs.array_molar_mass, axis=-1, dtype=NDFloat) / (R * t) * p
+        np = self.fs.np
+        return np.sum(self.array_fractions * self.fs.array_molar_mass, axis=-1) / (R * t) * p  # type: ignore[no-any-return]
 
     def get_x(self, species: str | list[str] | None = None) -> FloatArray:
         """Get molar fractions of fluid species
@@ -506,24 +540,24 @@ class fluid:
             return self.array_composition[..., [self.fs.species.index(k) for k in species]]
 
     def __add__(self, other: T) -> T:
-        return array_operation(self, other, np.add)
+        return array_operation(self, other, operator.add)
 
     def __sub__(self, other: T) -> T:
-        return array_operation(self, other, np.subtract)
+        return array_operation(self, other, operator.sub)
 
     def __truediv__(self, other: int | float | NDArray[Any]) -> 'fluid':
-        if isinstance(other, np.ndarray):
-            k = np.expand_dims(other, -1)
-        else:
-            k = np.array(other, dtype=NDFloat)
+        np = self.fs.np
+        k = other if isinstance(other, (int, float)) else np.expand_dims(other, -1)
         return self.__class__(self.array_composition / k, self.fs)
 
     def __mul__(self, other: int | float | NDArray[Any]) -> 'fluid':
-        k = np.expand_dims(other, -1) if isinstance(other, np.ndarray) else other
+        np = self.fs.np
+        k = other if isinstance(other, (int, float)) else np.expand_dims(other, -1)
         return self.__class__(self.array_composition * k, self.fs)
 
     def __rmul__(self, other: int | float | NDArray[Any]) -> 'fluid':
-        k = np.expand_dims(other, -1) if isinstance(other, np.ndarray) else other
+        np = self.fs.np
+        k = other if isinstance(other, (int, float)) else np.expand_dims(other, -1)
         return self.__class__(self.array_composition * k, self.fs)
 
     def __neg__(self) -> 'fluid':
@@ -555,8 +589,8 @@ class fluid:
 
     def __repr__(self) -> str:
         if len(self.array_fractions.shape) == 1:
-            lines = [f'{s:16} {c * 100:5.2f} %' for s, c in zip(self.fs.species, self.array_fractions)]
-            return f'{"Total":16} {self.total:8.3e} mol\n' + '\n'.join(lines)
+            lines = [f'{s:16} {float(c) * 100:5.2f} %' for s, c in zip(self.fs.species, self.array_fractions)]
+            return f'{"Total":16} {float(self.total):8.3e} mol\n' + '\n'.join(lines)
         else:
             array_disp = self.array_fractions.__repr__()
             padding = int(array_disp.find('\n') / (len(self.fs.species) + 1))
@@ -591,15 +625,12 @@ class elements:
                 only be used if composition argument is a dict. Otherwise
                 the dimensions are specified by the composition argument.
         """
-        if isinstance(composition, list):
-            composition = np.array(composition)
-
         if isinstance(composition, fluid):
-            new_composition: FloatArray = np.dot(composition.array_composition, composition.fs.array_species_elements)
             if fs:
-                self.array_elemental_composition = reorder_array(new_composition, composition.fs.elements, fs.elements)
+                self.array_elemental_composition: FloatArray = fs._asarray(
+                    reorder_array(composition.array_elemental_composition, composition.fs.elements, fs.elements, composition.fs.np))
             else:
-                self.array_elemental_composition = new_composition
+                self.array_elemental_composition = composition.array_elemental_composition
                 fs = composition.fs
         elif isinstance(composition, dict) and fs is None:
             fs = fluid_system(species(element_names=list(composition.keys())))
@@ -611,15 +642,16 @@ class elements:
             if len(missing_elements):
                 raise Exception(f'Element {missing_elements[0]} is not part of the fluid system')
 
-            self.array_elemental_composition = np.array([composition[s] if s in composition.keys() else 0 for s in fs.elements])
+            self.array_elemental_composition = fs._asarray([composition[s] if s in composition.keys() else 0 for s in fs.elements])
 
             if shape is not None:
-                self.array_elemental_composition = self.array_elemental_composition * np.ones(list(shape) + [len(fs.species)])
+                self.array_elemental_composition = self.array_elemental_composition * fs.np.ones((*shape, len(fs.elements)))
 
-        elif isinstance(composition, np.ndarray):
+        elif not isinstance(composition, fluid):
             assert shape is None, 'specify shape by the shape of the composition array.'
-            assert composition.shape[-1] == len(fs.elements), f'composition.shape[-1] ({composition.shape[-1]}) must be {len(fs.elements)}'
-            self.array_elemental_composition = composition
+            self.array_elemental_composition = fs._asarray(composition)
+            assert self.array_elemental_composition.shape[-1] == len(fs.elements), \
+                f'composition.shape[-1] ({self.array_elemental_composition.shape[-1]}) must be {len(fs.elements)}'
 
         self.shape: Shape = self.array_elemental_composition.shape[:-1]
         self.fs = fs
@@ -639,7 +671,8 @@ class elements:
         Returns:
             Mass of the fluid in kg
         """
-        return np.sum(self.array_elemental_composition * self.fs.array_atomic_mass, axis=-1, dtype=NDFloat)
+        np = self.fs.np
+        return np.sum(self.array_elemental_composition * self.fs.array_atomic_mass, axis=-1)  # type: ignore[no-any-return]
 
     def get_n(self, elemental_species: str | list[str] | None = None) -> FloatArray:
         """Get molar amount of elements
@@ -664,29 +697,31 @@ class elements:
             return self.array_elemental_composition[..., [self.fs.elements.index(k) for k in elemental_species]]
 
     def __add__(self, other: 'fluid | elements') -> 'elements':
-        return array_operation(self, other, np.add)
+        return array_operation(self, other, operator.add)
 
     def __sub__(self, other: 'fluid | elements') -> 'elements':
-        return array_operation(self, other, np.subtract)
+        return array_operation(self, other, operator.sub)
 
     def __truediv__(self, other: int | float | FloatArray) -> 'elements':
-        k = np.expand_dims(other, -1) if isinstance(other, np.ndarray) else other
-        ttes = self.array_elemental_composition / k
-        return self.__class__(self.array_elemental_composition / k + ttes, self.fs)
+        np = self.fs.np
+        k = other if isinstance(other, (int, float)) else np.expand_dims(other, -1)
+        return self.__class__(self.array_elemental_composition / k, self.fs)
 
     def __mul__(self, other: int | float | FloatArray) -> 'elements':
-        k = np.expand_dims(other, -1) if isinstance(other, np.ndarray) else other
+        np = self.fs.np
+        k = other if isinstance(other, (int, float)) else np.expand_dims(other, -1)
         return self.__class__(self.array_elemental_composition * k, self.fs)
 
     def __rmul__(self, other: int | float | FloatArray) -> 'elements':
-        k = np.expand_dims(other, -1) if isinstance(other, np.ndarray) else other
+        np = self.fs.np
+        k = other if isinstance(other, (int, float)) else np.expand_dims(other, -1)
         return self.__class__(self.array_elemental_composition * k, self.fs)
 
     def __neg__(self) -> 'elements':
         return self.__class__(-self.array_elemental_composition, self.fs)
 
     def __array__(self) -> FloatArray:
-        return self.array_elemental_composition
+        return np.asarray(self.array_elemental_composition)
 
     @overload
     def __getitem__(self, key: str) -> FloatArray:
@@ -711,7 +746,7 @@ class elements:
 
     def __repr__(self) -> str:
         if len(self.array_elemental_composition.shape) == 1:
-            lines = [f'{s:16} {c:5.3e} mol' for s, c in zip(self.fs.elements, self.array_elemental_composition)]
+            lines = [f'{s:16} {float(c):5.3e} mol' for s, c in zip(self.fs.elements, self.array_elemental_composition)]
             return '\n'.join(lines)
         else:
             array_disp = self.array_elemental_composition.__repr__()
@@ -723,27 +758,29 @@ class elements:
 
 def lookup(prop_array: FloatArray,
            temperature: FloatArray | float,
-           t_offset: float) -> FloatArray:
+           t_offset: float,
+           np: Any = np) -> FloatArray:
     """linear interpolates values from the given prop_array
 
     Args:
         prop_array: Array of the temperature depended property
         temperature: Absolute temperature(s) in Kelvin. Must
             be broadcastable to prop_array.
+        np: Array namespace of prop_array
 
     Returns:
         Interpolates values based on given temperature
     """
-    t = np.array(temperature) - t_offset
+    t = np.asarray(temperature) - t_offset
     t_lim = np.minimum(np.maximum(0, t), prop_array.shape[0] - 2)
 
     f = np.expand_dims(t - np.floor(t_lim), axis=-1)
 
     ti1 = t_lim.astype(int)
-    return f * prop_array[ti1 + 1, :] + (1 - f) * prop_array[ti1, :]
+    return f * prop_array[ti1 + 1, :] + (1 - f) * prop_array[ti1, :]  # type: ignore[no-any-return]
 
 
-def reorder_array(arr: FloatArray, old_index: list[str], new_index: list[str]) -> FloatArray:
+def reorder_array(arr: FloatArray, old_index: list[str], new_index: list[str], np: Any = np) -> FloatArray:
     """Reorder the last dimension of an array according to a provided list of species
     names in the old oder and a list in the new order.
 
@@ -751,14 +788,18 @@ def reorder_array(arr: FloatArray, old_index: list[str], new_index: list[str]) -
         arr: Array to be reordered
         old_index: List of species names in the current order
         new_index: List of species names in the new order
+        np: Array namespace of arr
 
     Returns:
         Array with the last dimension reordered
     """
-    ret_array = np.zeros([*arr.shape[:-1], len(new_index)])
-    for i, k in enumerate(old_index):
-        ret_array[..., new_index.index(k)] = arr[..., i]
-    return ret_array
+    missing = [k for k in old_index if k not in new_index]
+    if missing:
+        raise ValueError(f'{missing[0]} is not in the new index')
+
+    # Entries not available in the old index are taken from an appended column of zeros
+    arr = np.concatenate([arr, np.zeros_like(arr[..., :1])], axis=-1)
+    return arr[..., [old_index.index(k) if k in old_index else len(old_index) for k in new_index]]
 
 
 @overload
@@ -789,6 +830,7 @@ def array_operation(self: elements | fluid, other: elements | fluid, func: Calla
         A new fluid or elements object with the result of the
     """
     assert isinstance(other, elements) or isinstance(other, fluid)
+
     if self.fs is other.fs:
         if isinstance(self, elements) or isinstance(other, elements):
             return elements(func(self.array_elemental_composition, other.array_elemental_composition), self.fs)
@@ -809,12 +851,13 @@ def array_operation(self: elements | fluid, other: elements | fluid, func: Calla
             el_array = reorder_array(self.array_composition, self.fs.species, other.fs.species)
             return fluid(func(el_array, other.array_composition), other.fs)
     else:
-        new_fs = fluid_system(sorted(list(set(self.fs.species) | set(other.fs.species))))
+        new_fs = fluid_system(sorted(list(set(self.fs.species) | set(other.fs.species))),
+                              backend=self.fs.np, device=self.fs.device)
         if isinstance(self, elements) or isinstance(other, elements):
-            el_array1 = reorder_array(self.array_elemental_composition, self.fs.elements, new_fs.elements)
-            el_array2 = reorder_array(other.array_elemental_composition, other.fs.elements, new_fs.elements)
+            el_array1 = reorder_array(self.array_elemental_composition, self.fs.elements, new_fs.elements, self.fs.np)
+            el_array2 = reorder_array(other.array_elemental_composition, other.fs.elements, new_fs.elements, other.fs.np)
             return elements(func(el_array1, el_array2), new_fs)
         else:
-            el_array1 = reorder_array(self.array_composition, self.fs.species, new_fs.species)
-            el_array2 = reorder_array(other.array_composition, other.fs.species, new_fs.species)
+            el_array1 = reorder_array(self.array_composition, self.fs.species, new_fs.species, self.fs.np)
+            el_array2 = reorder_array(other.array_composition, other.fs.species, new_fs.species, other.fs.np)
             return fluid(func(el_array1, el_array2), new_fs)

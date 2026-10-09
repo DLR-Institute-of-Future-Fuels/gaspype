@@ -2,6 +2,12 @@ import cantera as ct
 import numpy as np
 import time
 import gaspype as gp
+from benchmark_jax import jax_devices, to_device, measure
+
+try:
+    import jax
+except ImportError:
+    pass
 
 try:
     import cea
@@ -61,6 +67,23 @@ elapsed = time.perf_counter() - t0
 
 print(f"Computed {n_states} Cp values in {elapsed:.4f} seconds (vectorized Gaspype)")
 print("First 5 Cp values (J/mol·K):", cp_values[:5])
+
+for name, device in jax_devices():
+    # The backend and the device are selected by the fluid system
+    fs_jax = gp.fluid_system(fluid.fs.species, backend='jax', device=device)
+
+    def get_cp(composition, t):
+        return gp.fluid(composition, fs_jax).get_cp(t)
+
+    composition_jax = to_device(fluid.array_composition, device)
+    temperatures_jax = to_device(temperatures, device)
+
+    first, elapsed, cp_values = measure(get_cp, composition_jax, temperatures_jax)
+    print(f"Computed {n_states} Cp values in {elapsed:.4f} seconds (Gaspype with JAX on {name}, first call {first:.4f} seconds)")
+
+    first, elapsed, cp_values = measure(jax.jit(get_cp), composition_jax, temperatures_jax)
+    print(f"Computed {n_states} Cp values in {elapsed:.4f} seconds (Gaspype with JAX jit on {name}, first call {first:.4f} seconds)")
+    print("First 5 Cp values (J/mol·K):", cp_values[:5])
 
 
 if CEA_AVAILABLE:
