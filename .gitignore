@@ -13,7 +13,9 @@ docs/source/api/
 venv/
 .venv/
 thermo_data/combined_data.yaml
+thermo_data/combined_data_condensed.yaml
 src/gaspype/data/therm_data.bin
+src/gaspype/data/therm_data_condensed.bin
 src/gaspype/_version.py
 */*/build/
 examples/*.ipynb

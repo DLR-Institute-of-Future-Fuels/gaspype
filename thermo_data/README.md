@@ -26,11 +26,21 @@ Compile ```combined_data.yaml``` to the binary gaspype format:
 ``` bash
 python compile_to_bin.py combined_data.yaml ../src/gaspype/data/therm_data.bin
 ```
-General syntax is: ```python compile_to_bin.py YAML_INPUT_FILE BINARY_OUTPUT_FILE```
+General syntax is: ```python compile_to_bin.py [--double] YAML_INPUT_FILE BINARY_OUTPUT_FILE```
+
+Condensed phase species (solids and liquids) are kept in a separate database,
+since they can not be part of a fluid system. They are only available in the XML
+source and are selected with the ```--condensed``` option:
+``` bash
+python combine_data.py --condensed combined_data_condensed.yaml nasa9*.xml
+python compile_to_bin.py --double combined_data_condensed.yaml ../src/gaspype/data/therm_data_condensed.bin
+```
+The polynomials of some condensed species have large coefficients that cancel
+each other out, therefore they are stored as 64 Bit floats (```--double```).
 
 The binary format is structured like this, it uses little-endian and IEEE 754 floats:
 ```
-[4 Byte magic number: 'gapy']
+[4 Byte magic number: 'gapy' or 'gapd' if compiled with --double]
 [4 Byte: 32 Bit integer for length of all species names (NAMES_LENGTH)]
 [NAMES_LENGTH Bytes: ASCII encoded string with all species names separated by space]
 [Index
@@ -52,7 +62,8 @@ The binary format is structured like this, it uses little-endian and IEEE 754 fl
             [4 Byte: 32 Bit float with temperature supporting point]
         ]
         [For Range(NUM_TEMPS - 1)
-            [36 Bytes: 9 x 32 Bit float with NASA9-Polynomial for a temperature interval]
+            [36 Bytes: 9 x 32 Bit float with NASA9-Polynomial for a temperature interval
+             (72 Bytes: 9 x 64 Bit float for the magic number 'gapd')]
         ]
         [REF_LEN Bytes: ASCII string of the data reference]
     ]

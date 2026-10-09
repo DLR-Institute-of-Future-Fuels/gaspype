@@ -24,6 +24,8 @@ jobs:
           pip install pyyaml
           python thermo_data/combine_data.py thermo_data/combined_data.yaml thermo_data/nasa9*.yaml
           python thermo_data/compile_to_bin.py thermo_data/combined_data.yaml src/gaspype/data/therm_data.bin
+          python thermo_data/combine_data.py --condensed thermo_data/combined_data_condensed.yaml thermo_data/nasa9*.xml
+          python thermo_data/compile_to_bin.py --double thermo_data/combined_data_condensed.yaml src/gaspype/data/therm_data_condensed.bin
         # echo "Create a dummy file to ensure gaspype does't crash"
         # mkdir -p src/gaspype/data
         # printf 'gapy\x00\x00\x00\x00' > src/gaspype/data/therm_data.bin
