@@ -1,6 +1,7 @@
 # Gaspype
 Gaspype is a performant Python library for thermodynamic calculations like equilibrium
-reactions for several hundred gas species and their mixtures - written in Python/NumPy.
+reactions for several hundred gas species and their mixtures - written in Python/NumPy,
+with GPU support with JAX.
 
 It is designed to address the needs of researchers and engineers working in chemical
 engineering, combustion analysis, and energy systems. Thermodynamic calculations,
@@ -25,14 +26,16 @@ Python. Its open-source nature and minimal dependencies make it an accessible an
 powerful tool for researchers in chemistry, chemical engineering, energy systems,
 and electrochemistry.
 
-It is designed with goal to be portable to NumPy-style GPU frameworks like JAX and PyTorch.
+Besides NumPy, [JAX](https://docs.jax.dev) can be selected as array backend. This
+allows running calculations on a GPU, compiling them just-in-time and differentiating
+them automatically.
 
 ## Key Features
 - Pure Python implementation with NumPy vectorization for high performance
 - Immutable types and comprehensive type hints for reliability
 - Intuitive, Pythonic API for both rapid prototyping and complex multidimensional models
 - Ready for Jupyter Notebook and educational use
-- Designed for future GPU support (JAX, PyTorch)
+- Optional JAX backend for GPU support, just-in-time compilation and automatic differentiation
 - Ships with a comprehensive NASA9-based species database (500+ species with NASA9-polynomials)
 - Supports electrochemical calculations including Nernst potentials and cell voltages
 - Optimized binary database format for fast species lookup and minimal memory usage
@@ -47,6 +50,14 @@ Installation with conda:
 ``` bash
 conda install conda-forge::gaspype
 ```
+
+NumPy is the only required dependency. For the optional JAX backend install
+Gaspype together with JAX:
+``` bash
+pip install gaspype[jax]
+```
+This installs the CPU version of JAX. For running calculations on a GPU follow the
+[JAX installation guide](https://docs.jax.dev/en/latest/installation.html).
 
 ## Getting started
 Gaspype provides two main classes: ```fluid``` and ```elements```.
@@ -226,6 +237,75 @@ NH3              45.38 %
 O2                0.00 %
 ```
 
+## JAX backend
+The array library is selected per ```fluid_system``` with the ```backend``` argument.
+All ```fluid``` and ```elements``` objects based on it use JAX for their arrays
+and calculations and return JAX arrays. Arguments can still be provided as
+floats or NumPy arrays:
+
+``` py
+import gaspype as gp
+import numpy as np
+import jax
+
+jax.config.update('jax_enable_x64', True)
+
+fs = gp.fluid_system('CH4, H2O, H2, CO, CO2', backend='jax')
+fl = gp.fluid({'CH4': 1, 'H2O': 2}, fs)
+
+t_range = np.linspace(600, 800, 5) + 273.15
+fl.get_density(t=t_range, p=1e5)
+```
+```
+Array([0.23909379, 0.2261439 , 0.21452473, 0.20404119, 0.19453454],      dtype=float64)
+```
+
+JAX calculates by default with single precision (float32). Gaspype works with
+single precision as well, but with reduced accuracy for example for trace species
+in an equilibrium. Double precision is enabled as shown above
+with ```jax_enable_x64```.
+
+A device can be selected with the ```device``` argument, either as string
+like ```'cpu'```, ```'gpu'``` or ```'gpu:1'``` or as JAX device object:
+
+``` py
+fs_gpu = gp.fluid_system('CH4, H2O, H2, CO, CO2', backend='jax', device='gpu')
+```
+
+Gaspype functions can be used in JAX transformations like ```jax.jit```
+and ```jax.vmap```:
+
+``` py
+@jax.jit
+def h2_fraction(t):
+    return gp.equilibrium(fl, t, p=1e5).get_x('H2')
+
+h2_fraction(t_range)
+```
+```
+Array([0.53103609, 0.59349886, 0.62796147, 0.63916901, 0.63958296],      dtype=float64)
+```
+
+They can be differentiated automatically as well, for example to get the change
+of the equilibrium composition with the temperature:
+
+``` py
+jax.jacfwd(h2_fraction)(1000.5)
+```
+```
+Array(0.00019654, dtype=float64)
+```
+
+Notes on the JAX backend:
+- A ```fluid_system``` created automatically by an operation between two objects
+  inherits the backend and device of the first operand. Objects created without
+  a ```fluid_system``` use NumPy, therefore it is recommended to provide
+  the ```fluid_system``` explicitly when using JAX.
+- Compiled or vectorized equilibrium calculations can only be differentiated
+  in forward mode (```jax.jacfwd```, ```jax.jvp```). Reverse mode (```jax.grad```,
+  ```jax.jacrev```) works only without ```jax.jit``` and ```jax.vmap```.
+
+
 ## Developer Guide
 Contributions are welcome, please open an issue or submit a pull request on GitHub.
 
@@ -257,6 +337,8 @@ Compile binary property database from text based files:
 ```bash
 python thermo_data/combine_data.py thermo_data/combined_data.yaml thermo_data/nasa9*.yaml thermo_data/nasa9*.xml
 python thermo_data/compile_to_bin.py thermo_data/combined_data.yaml src/gaspype/data/therm_data.bin
+python thermo_data/combine_data.py --condensed thermo_data/combined_data_condensed.yaml thermo_data/nasa9*.xml
+python thermo_data/compile_to_bin.py --double thermo_data/combined_data_condensed.yaml src/gaspype/data/therm_data_condensed.bin
 ```
 
 Ensure that everything is set up correctly by running the tests:
