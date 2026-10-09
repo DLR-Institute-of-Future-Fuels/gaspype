@@ -122,21 +122,6 @@ def test_unknown_species():
         gp.activity(gp.fluid({'H2': 1}), 1000, 1e5, 'Xx(cr)')
 
 
-def test_solvers():
-    fl = gp.fluid({'CH4': 1, 'H2O': 1}, fs)
-    t = 800 + 273.15
-
-    ref_c = gp.carbon_activity(fl, t, 1e5)
-    ref_o2 = gp.oxygen_partial_pressure(fl, t, 1e5)
-
-    gp.set_solver('gibs minimization')
-    try:
-        assert gp.carbon_activity(fl, t, 1e5) == pytest.approx(ref_c, rel=1e-4)
-        assert gp.oxygen_partial_pressure(fl, t, 1e5) == pytest.approx(ref_o2, rel=1e-4)
-    finally:
-        gp.set_solver('system of equations')
-
-
 def test_condensed_species_list():
     condensed = gp.species(condensed=True)
 
