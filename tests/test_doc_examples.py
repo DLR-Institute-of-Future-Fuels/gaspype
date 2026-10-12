@@ -27,6 +27,16 @@ def test_example_code():
             mod.run_test()
 
 
+def test_example_trailing_newline():
+    # notedown does not recognize a closing code fence at the end of a file
+    # without a trailing newline, the last code block is then not executed
+    for path in glob('examples/*.md'):
+        if not os.path.basename(path).lower() == 'readme.md':
+            with open(path, 'rb') as f:
+                assert f.read().endswith(b'\n'), f"{path} must end with a newline"
+
+
 if __name__ == "__main__":
     test_readme()
     test_example_code()
+    test_example_trailing_newline()
