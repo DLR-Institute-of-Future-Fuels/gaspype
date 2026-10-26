@@ -21,7 +21,10 @@ def main():
                 inp_therm_prop += get_xml_data(file_name, condensed)
             else:
                 with open(file_name, 'r') as f:
-                    inp_therm_prop += yaml.safe_load(f)['species']
+                    # The YAML files have no phase information, condensed species are
+                    # identified by the phase tag at the end of the name, e.g. H2O(L)
+                    inp_therm_prop += [s for s in yaml.safe_load(f)['species']
+                                       if s['name'].endswith(')') == condensed]
 
     therm_prop = []
     added_species_names: set[str] = set()
