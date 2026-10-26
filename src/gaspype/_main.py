@@ -9,6 +9,7 @@ from ._backend import get_backend, as_float_array
 from gaspype._phys_data import atomic_weights, db_reader, SpeciesData
 import re
 import pkgutil
+import warnings
 from .constants import R, epsy, p0
 from .typing import FloatArray, NDFloat, Shape, ArrayIndices
 
@@ -162,6 +163,8 @@ class species_system:
         element_compositions: list[dict[str, int]] = list()
         self._species_compositions = element_compositions
         self._ref_strings: list[str] = list()
+        # Temperature range in Kelvin covered by the thermodynamic data of each species
+        self._species_t_ranges: list[tuple[float, float]] = list()
 
         for i, s in enumerate(species):
             species_data = next((d for d in (db.read(s) for db in self._databases) if d), None)
@@ -169,13 +172,11 @@ class species_system:
                 raise Exception(f'Species {s} not found')
             element_compositions.append(species_data.composition)
             self._ref_strings.append(species_data.ref_string)
+            self._species_t_ranges.append((species_data.t_range[0], species_data.t_range[-1]))
 
             properties = species_properties(species_data, temperature_base_points)
             for prop_array, prop in zip([self._cp_array, self._h_array, self._s_array, self._g_rt_array], properties):
                 prop_array[:, i] = np.nan_to_num(prop, nan=self._out_of_range_value)
-
-            # TODO: Check if temperature range is not available
-            # print(f'Warning: temperature ({T}) out of range for {s}')
 
         self.elements: list[str] = sorted(list(set(k for ac in element_compositions for k in ac.keys())))
         self.array_species_elements: FloatArray = np.array([[ec[el] if el in ec else 0.0 for el in self.elements] for ec in element_compositions])
@@ -295,6 +296,13 @@ class fluid_system(species_system):
                 a string like 'cpu', 'gpu' or 'gpu:1'
         """
         super().__init__(species, t_min, t_max, backend, device)
+
+        # The properties of a species are zero outside of the temperature range of its data
+        out_of_range = [f'{s} ({t1:.6g} K to {t2:.6g} K)' for s, (t1, t2) in zip(self.species, self._species_t_ranges)
+                        if t1 > t_min or t2 < t_max]
+        if out_of_range:
+            warnings.warn(f'Temperature range of the fluid_system ({t_min} K to {t_max} K) exceeds '
+                          f'the thermodynamic data of: {", ".join(out_of_range)}', stacklevel=2)
 
         species_elements = np.array([[ec.get(el, 0.0) for el in self.elements] for ec in self._species_compositions])
         self.array_stoichiometric_coefficients: FloatArray = np.array(null_space(species_elements.T), dtype=NDFloat).T
