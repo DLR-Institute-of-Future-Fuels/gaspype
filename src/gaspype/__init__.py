@@ -16,10 +16,10 @@ Example usage:
 from ._version import __version__
 from ._main import species, species_system, fluid_system, fluid, elements
 from ._operations import stack, concat, activity, carbon_activity, oxygen_partial_pressure
-from ._solver import set_solver, get_solver, equilibrium
+from ._solver import set_solver, get_solver, equilibrium, equilibrium_hp
 
 __all__ = [
     '__version__',
     'species', 'species_system', 'fluid_system', 'fluid', 'elements',
-    'set_solver', 'get_solver', 'equilibrium',
+    'set_solver', 'get_solver', 'equilibrium', 'equilibrium_hp',
     'stack', 'concat', 'activity', 'carbon_activity', 'oxygen_partial_pressure']

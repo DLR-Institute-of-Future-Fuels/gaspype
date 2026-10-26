@@ -237,6 +237,37 @@ NH3              45.38 %
 O2                0.00 %
 ```
 
+### Adiabatic equilibrium
+The ```equilibrium_hp``` function calculates the equilibrium at a given absolute
+enthalpy and pressure and returns the equilibrium composition together with its
+temperature. Since enthalpies are additive, mixing streams of different
+temperatures or adding heat is expressed by the enthalpy argument. The
+following example calculates the adiabatic combustion of methane at 25 °C with
+air preheated to 400 °C:
+
+``` python
+fs = gp.fluid_system('CH4, H2O, H2, CO2, CO, O2, N2', t_max=3000)
+fuel = gp.fluid({'CH4': 1}, fs)
+air = gp.fluid({'O2': 2.4, 'N2': 9.0}, fs)
+
+fl4, t4 = gp.equilibrium_hp(fuel + air, fuel.get_H(25 + 273.15) + air.get_H(400 + 273.15))
+print(f'Adiabatic temperature: {t4 - 273.15:.1f} °C')  # 2011.4 °C
+fl4
+```
+```
+Total            1.244e+01 mol
+CH4               0.00 %
+H2O              15.92 %
+H2                0.16 %
+CO2               7.61 %
+CO                0.43 %
+O2                3.51 %
+N2               72.37 %
+```
+
+The temperature range of the ```fluid_system``` (```t_min``` and ```t_max```) must
+cover the equilibrium temperature, otherwise the result is ```nan```.
+
 ## JAX backend
 The array library is selected per ```fluid_system``` with the ```backend``` argument.
 All ```fluid``` and ```elements``` objects based on it use JAX for their arrays

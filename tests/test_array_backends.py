@@ -185,6 +185,40 @@ def test_equilibrium_without_reactions():
                    gp.equilibrium(ref, 1000).array_composition)
 
 
+def test_equilibrium_hp():
+    ref = gp.fluid(composition, fs)
+    fl = gp.fluid(composition, fs_jax)
+    h = ref.get_H(t)
+
+    for f, f_ref in [(fl, ref), (gp.elements(fl), gp.elements(ref))]:
+        fl_out, t_out = gp.equilibrium_hp(f, h, p)
+        ref_out, t_ref = gp.equilibrium_hp(f_ref, h, p)
+        assert np.asarray(t_out) == pytest.approx(t_ref, rel=1e-9)
+        assert np.asarray(fl_out.array_composition) == pytest.approx(ref_out.array_composition, rel=1e-7, abs=1e-20)
+        assert isinstance(t_out, jax.Array)
+
+    # No reactions
+    el = gp.elements(np.array([[2.0, 1.0, 0.5], [1.0, 0.0, 3.0]]), gp.fluid_system('H2, N2, Ar', backend='jax'))
+    assert gp.equilibrium_hp(el, 0.0)[1] == pytest.approx(298.15, rel=1e-6)
+
+
+def test_jax_equilibrium_hp_transformations():
+    ref = gp.fluid(composition, fs)
+    fl = gp.fluid(composition, fs_jax)
+
+    def t_ad(t_in):
+        return gp.equilibrium_hp(fl, fl.get_H(t_in), p)[1]
+
+    assert np.asarray(jax.jit(t_ad)(jnp.asarray(t))) == pytest.approx(
+        gp.equilibrium_hp(ref, ref.get_H(t), p)[1], rel=1e-9)
+
+    # Derivative of the adiabatic temperature by the inlet temperature
+    grad = jax.grad(lambda t_in: t_ad(t_in)[0])(900.0)
+    fd = (gp.equilibrium_hp(ref[0], ref[0].get_H(901.0), p)[1] -
+          gp.equilibrium_hp(ref[0], ref[0].get_H(899.0), p)[1]) / 2
+    assert float(grad) == pytest.approx(float(fd), rel=1e-3)
+
+
 def test_single_precision():
     ref = gp.fluid(composition, fs)
 
@@ -193,10 +227,12 @@ def test_single_precision():
         fs_f32 = gp.fluid_system(species, backend='jax')
         fl = gp.fluid(composition, fs_f32)
         results = [fl.get_h(t), fl.get_s(t, p), fl.get_g(t, p), fl.get_density(t, p),
-                   (fl * t + fl).array_composition, gp.equilibrium(fl, t, p).array_composition]
+                   (fl * t + fl).array_composition, gp.equilibrium(fl, t, p).array_composition,
+                   gp.equilibrium_hp(fl, fl.get_H(t), p)[1]]
 
     references = [ref.get_h(t), ref.get_s(t, p), ref.get_g(t, p), ref.get_density(t, p),
-                  (ref * t + ref).array_composition, gp.equilibrium(ref, t, p).array_composition]
+                  (ref * t + ref).array_composition, gp.equilibrium(ref, t, p).array_composition,
+                  gp.equilibrium_hp(ref, ref.get_H(t), p)[1]]
 
     for result, reference in zip(results, references):
         assert result.dtype == np.float32
