@@ -3,7 +3,7 @@ import numpy as np
 from ._main import elements, fluid, fluid_system
 from .typing import NDFloat, FloatArray
 from .constants import p0, epsy, R
-from ._backend import iterate
+from ._backend import find_root
 
 if TYPE_CHECKING:
     def minimize(*a: Any, **b: Any) -> dict[str, FloatArray]:
@@ -174,7 +174,7 @@ def equilibrium_eq(fs: fluid_system, element_composition: FloatArray,
         return np.minimum(logn + delta, species_max_log + 1), converged
 
     # Start values are the maximum possible amounts of the species
-    logn: FloatArray = iterate(newton_step, species_max_log, 30, np)
+    logn: FloatArray = find_root(lambda logn: residuals(logn)[0], newton_step, species_max_log, 30, np)
 
     n_eq: FloatArray = np.exp(logn) * el_max
     return n_eq
@@ -319,7 +319,8 @@ def equilibrium_eq_hp(fs: fluid_system, element_composition: FloatArray, h: floa
         log_t = np.clip(x[..., -1] + delta[..., -1], np.log(t_min), np.log(t_max))
         return np.concatenate([logn, log_t[..., None]], axis=-1), converged
 
-    x: FloatArray = iterate(newton_step, np.concatenate([logn_start, np.log(t_start)[..., None]], axis=-1), 60, np)
+    x: FloatArray = find_root(lambda x: residuals(x)[0], newton_step,
+                              np.concatenate([logn_start, np.log(t_start)[..., None]], axis=-1), 60, np)
 
     # The energy balance can not be satisfied if the temperature is out of range
     valid = np.abs(residuals(x)[0][..., -1]) < max(1e-6, 10 * tol)
@@ -340,22 +341,24 @@ def _temperature_from_enthalpy(fs: fluid_system, composition: FloatArray, h: Flo
     # Energy balance is scaled by a constant RT to keep its derivative for T positive
     rt_scale = R * t_start * np.sum(composition, axis=-1)
 
+    # The unknown log_t has a trailing axis of length 1 for find_root
     def resid(log_t: FloatArray) -> FloatArray:
-        return (np.sum(composition * fs.get_species_h(np.exp(log_t)), axis=-1) - h) / rt_scale  # type: ignore[no-any-return]
+        h_fluid = np.sum(composition * fs.get_species_h(np.exp(log_t[..., 0])), axis=-1)
+        return ((h_fluid - h) / rt_scale)[..., None]  # type: ignore[no-any-return]
 
     # The residuals can not get smaller than the precision of the data type
     tol = max(1e-10, 1e3 * float(np.finfo(t_start.dtype).eps))
 
     def newton_step(log_t: FloatArray) -> tuple[FloatArray, Any]:
-        t = np.exp(log_t)
+        t = np.exp(log_t[..., 0])
         r = resid(log_t)
-        dr = np.sum(composition * fs.get_species_cp(t), axis=-1) * t / rt_scale
+        dr = (np.sum(composition * fs.get_species_cp(t), axis=-1) * t / rt_scale)[..., None]
         converged = np.all(np.abs(r) < tol)
         log_t = np.clip(log_t - np.clip(r / dr, -0.2, 0.2), np.log(t_min), np.log(t_max))
         return log_t, converged
 
-    log_t: FloatArray = iterate(newton_step, np.log(t_start), 60, np)
-    return np.where(np.abs(resid(log_t)) < max(1e-6, 10 * tol), np.exp(log_t), np.nan)  # type: ignore[no-any-return]
+    log_t: FloatArray = find_root(resid, newton_step, np.log(t_start)[..., None], 60, np)
+    return np.where(np.abs(resid(log_t)[..., 0]) < max(1e-6, 10 * tol), np.exp(log_t[..., 0]), np.nan)  # type: ignore[no-any-return]
 
 
 def equilibrium_hp(f: fluid | elements, h: float | FloatArray, p: float | FloatArray = 1e5,

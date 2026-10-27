@@ -332,9 +332,10 @@ Notes on the JAX backend:
   inherits the backend and device of the first operand. Objects created without
   a ```fluid_system``` use NumPy, therefore it is recommended to provide
   the ```fluid_system``` explicitly when using JAX.
-- Compiled or vectorized equilibrium calculations can only be differentiated
-  in forward mode (```jax.jacfwd```, ```jax.jvp```). Reverse mode (```jax.grad```,
-  ```jax.jacrev```) works only without ```jax.jit``` and ```jax.vmap```.
+- Derivatives of equilibrium calculations are calculated by implicit
+  differentiation of the converged solution. They are available in forward
+  (```jax.jacfwd```, ```jax.jvp```) and reverse mode (```jax.grad```, ```jax.jacrev```),
+  also in combination with ```jax.jit``` and ```jax.vmap```.
 
 
 ## Developer Guide

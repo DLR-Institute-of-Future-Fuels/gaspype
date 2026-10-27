@@ -213,10 +213,16 @@ def test_jax_equilibrium_hp_transformations():
         gp.equilibrium_hp(ref, ref.get_H(t), p)[1], rel=1e-9)
 
     # Derivative of the adiabatic temperature by the inlet temperature
-    grad = jax.grad(lambda t_in: t_ad(t_in)[0])(900.0)
-    fd = (gp.equilibrium_hp(ref[0], ref[0].get_H(901.0), p)[1] -
-          gp.equilibrium_hp(ref[0], ref[0].get_H(899.0), p)[1]) / 2
-    assert float(grad) == pytest.approx(float(fd), rel=1e-3)
+    fd = (gp.equilibrium_hp(ref[0], ref[0].get_H(900.01), p)[1] -
+          gp.equilibrium_hp(ref[0], ref[0].get_H(899.99), p)[1]) / 0.02
+    for gradient in [jax.grad(lambda t_in: t_ad(t_in)[0]), jax.grad(jax.jit(lambda t_in: t_ad(t_in)[0]))]:
+        assert float(gradient(900.0)) == pytest.approx(float(fd), rel=1e-6)
+
+    # Without reactions the temperature follows from the enthalpy only
+    el = gp.elements(np.array([2.0, 1.0, 0.5]), gp.fluid_system('H2, N2, Ar', backend='jax'))
+    fl_el = gp.equilibrium(el, 700.0)
+    gradient = jax.grad(jax.jit(lambda h: gp.equilibrium_hp(el, h)[1]))(fl_el.get_H(700.0))
+    assert float(gradient) == pytest.approx(1 / float(fl_el.get_cp(700.0) * fl_el.total), rel=1e-6)
 
 
 def test_single_precision():
@@ -276,12 +282,40 @@ def test_jax_equilibrium_transformations():
     assert is_same(jax.vmap(equilibrium_composition)(t_jax), reference)
     assert is_same(jax.jit(jax.vmap(equilibrium_composition))(t_jax), reference)
 
-    # Derivative of the composition with respect to the temperature. The
-    # temperature is between two base points of the piecewise linear property data.
+    # Derivative of the composition with respect to the temperature
     t0, dt = 900.5, 1e-3
     finite_difference = (equilibrium_composition(t0 + dt) - equilibrium_composition(t0 - dt)) / (2 * dt)
-    for jacobian in [jax.jacrev(equilibrium_composition), jax.jit(jax.jacfwd(equilibrium_composition))]:
-        assert np.asarray(jacobian(jnp.asarray(t0))) == pytest.approx(finite_difference, rel=1e-5, abs=1e-9)
+    for jacobian in [jax.jacrev(equilibrium_composition), jax.jit(jax.jacfwd(equilibrium_composition)),
+                     jax.jacrev(jax.jit(equilibrium_composition)), jax.jit(jax.jacrev(equilibrium_composition))]:
+        assert np.asarray(jacobian(jnp.asarray(t0))) == pytest.approx(finite_difference, rel=1e-6, abs=1e-12)
+
+    vectorized_jacobian = jax.jit(jax.vmap(jax.jacrev(equilibrium_composition)))(jnp.asarray([t0]))
+    assert np.asarray(vectorized_jacobian[0]) == pytest.approx(finite_difference, rel=1e-6, abs=1e-12)
+
+
+def test_jax_equilibrium_reverse_mode():
+    # Gradients of jitted and vectorized equilibrium calculations with respect to
+    # temperature, pressure and composition by implicit differentiation
+    def x_h2(t, p, x_h2o):
+        fl = gp.fluid({'CH4': 1, 'N2': 0.3}, fs_jax) + x_h2o * gp.fluid({'H2O': 1}, fs_jax)
+        return gp.equilibrium(fl, t, p).get_x('H2')
+
+    def x_h2_ref(t, p, x_h2o):
+        fl = gp.fluid({'CH4': 1, 'N2': 0.3}, fs) + x_h2o * gp.fluid({'H2O': 1}, fs)
+        return float(gp.equilibrium(fl, t, p).get_x('H2'))
+
+    args, steps = (1000.3, 2e5, 2.0), (1e-2, 1.0, 1e-5)
+    finite_differences = [(x_h2_ref(*args[:i], a + d, *args[i + 1:]) - x_h2_ref(*args[:i], a - d, *args[i + 1:])) / (2 * d)
+                          for i, (a, d) in enumerate(zip(args, steps))]
+
+    for gradient in [jax.grad(jax.jit(x_h2), (0, 1, 2)), jax.jit(jax.grad(x_h2, (0, 1, 2)))]:
+        assert [float(g) for g in gradient(*args)] == pytest.approx(finite_differences, rel=1e-6)
+
+    t_jax = jnp.linspace(900.0, 1300.0, 4)
+    gradients = jax.jit(jax.vmap(jax.grad(x_h2), in_axes=(0, None, None)))(t_jax, 2e5, 2.0)
+    for g, t_i in zip(gradients, t_jax):
+        fd = (x_h2_ref(float(t_i) + 1e-2, 2e5, 2.0) - x_h2_ref(float(t_i) - 1e-2, 2e5, 2.0)) / 2e-2
+        assert float(g) == pytest.approx(fd, rel=1e-6)
 
 
 def test_activity():
