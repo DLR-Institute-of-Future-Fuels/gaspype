@@ -81,6 +81,52 @@ def iterate(step: Callable[[Any], tuple[Any, Any]], x: Any, max_iterations: int,
     return x
 
 
+def find_root(residuals: Callable[[Any], Any], step: Callable[[Any], tuple[Any, Any]], x: Any,
+              max_iterations: int, namespace: Any) -> Any:
+    """Find the root of residuals by repeating an iteration step (see iterate)
+
+    The unknowns of each problem are on the last axis of x, the problems of a
+    batch are independent of each other. For traced JAX values (e.g. by jax.jit,
+    jax.vmap or jax.grad) the derivatives of the root are defined by the implicit
+    function theorem. They are therefore independent of the iterations and
+    available in forward and reverse mode.
+
+    Args:
+        residuals: Function that returns the residuals for the values
+        step: Function that takes the current values and returns a tuple
+            of the new values and a boolean scalar array that is true if
+            the iteration is converged
+        x: Start values
+        max_iterations: Maximum number of calls of step
+        namespace: Array namespace of x
+
+    Returns:
+        Values returned by the last call of step
+    """
+    if not is_jax(namespace):
+        return iterate(step, x, max_iterations, namespace)
+
+    import jax
+
+    # Without tracers there is nothing to differentiate, the plain iteration
+    # avoids the compilation of the functions by custom_root
+    if not isinstance(residuals(x), jax.core.Tracer):
+        return _iterate_jax(step, x, max_iterations)
+
+    def solve(_: Any, x0: Any) -> Any:
+        return _iterate_jax(step, x0, max_iterations)
+
+    def tangent_solve(g: Callable[[Any], Any], y: Any) -> Any:
+        # The Jacobian is block diagonal over the batch, therefore its columns are
+        # obtained by applying the linearized residuals to batches of unit vectors
+        jnp = jax.numpy
+        unit_vectors = jnp.broadcast_to(jnp.eye(y.shape[-1], dtype=y.dtype), y.shape + y.shape[-1:])
+        jacobian = jax.vmap(g, in_axes=-1, out_axes=-1)(unit_vectors)
+        return jnp.linalg.solve(jacobian, y[..., None])[..., 0]
+
+    return jax.lax.custom_root(residuals, x, solve, tangent_solve)
+
+
 def _iterate_jax(step: Callable[[Any], tuple[Any, Any]], x: Any, max_iterations: int) -> Any:
     """Variant of iterate for JAX, which runs the iteration by
     jax.lax.while_loop if the values are traced (e.g. by jax.jit or jax.vmap)"""

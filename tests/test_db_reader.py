@@ -18,3 +18,13 @@ def test_db_reader():
         assert len(species.name) > 0
         assert len(species.composition) > 0
         assert any(el in species.name for el in species.composition.keys())
+
+
+def test_no_condensed_species_in_gas_db():
+    with open('src/gaspype/data/therm_data.bin', 'rb') as f:
+        db = db_reader(f.read())
+    with open('src/gaspype/data/therm_data_condensed.bin', 'rb') as f:
+        condensed_db = db_reader(f.read())
+
+    assert 'H2O(L)' in condensed_db
+    assert not [name for name in db.names if name in condensed_db or name.endswith(')')]

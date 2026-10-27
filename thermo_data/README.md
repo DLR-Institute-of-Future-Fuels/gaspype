@@ -29,8 +29,11 @@ python compile_to_bin.py combined_data.yaml ../src/gaspype/data/therm_data.bin
 General syntax is: ```python compile_to_bin.py [--double] YAML_INPUT_FILE BINARY_OUTPUT_FILE```
 
 Condensed phase species (solids and liquids) are kept in a separate database,
-since they can not be part of a fluid system. They are only available in the XML
-source and are selected with the ```--condensed``` option:
+since they can not be part of a fluid system. They are selected with the
+```--condensed``` option. In the XML source they are marked by a phase flag, in the
+YAML sources they are identified by the phase tag at the end of their name
+(e.g. ```H2O(L)```, ```SiO2(a-qz)```). All condensed species are available in the
+XML source:
 ``` bash
 python combine_data.py --condensed combined_data_condensed.yaml nasa9*.xml
 python compile_to_bin.py --double combined_data_condensed.yaml ../src/gaspype/data/therm_data_condensed.bin

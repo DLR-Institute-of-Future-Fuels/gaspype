@@ -56,6 +56,31 @@ def test_equilibrium_cantera():
     assert np.mean(deviations) < 2e-4
 
 
+def test_equilibrium_hp_cantera():
+    # Compare adiabatic equilibrium temperatures to Cantera results
+    fs = gp.fluid_system(['CH4', 'H2O', 'H2', 'CO2', 'CO', 'O2', 'N2'], t_max=3500)
+
+    composition = gp.fluid({'CH4': 1, 'N2': 1}, fs) +\
+        gp.fluid({'O2': 1}, fs) * np.linspace(0, 1.6, 12) +\
+        gp.fluid({'H2O': 1}, fs) * np.linspace(0, 3, 4)[:, None]
+    t_in = np.array([400.0, 800.0])[:, None, None]
+    p = 3e5  # Pa
+
+    _, t_gp = gp.equilibrium_hp(composition, composition.get_H(t_in), p)
+
+    gas = ct.Solution(thermo='ideal-gas', species=[s for s in ct.Species.list_from_file('gri30.yaml')  # type: ignore
+                                                   if s.name in fs.species])
+    t_ct = np.zeros_like(t_gp)
+    for index in np.ndindex(t_gp.shape):
+        gas.TPX = t_in[index[0], 0, 0], p, dict(zip(fs.species, composition.array_fractions[index[1:]]))
+        gas.equilibrate('HP')  # type: ignore
+        t_ct[index] = gas.T
+
+    deviations = np.abs(t_gp - t_ct)
+    print(f'Max deviation: {np.max(deviations):.2f} K')
+    assert np.all(deviations < 3)
+
+
 def test_cantera():
 
     t = 1495 + 273.15  # K

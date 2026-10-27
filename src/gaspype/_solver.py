@@ -2,8 +2,8 @@ from typing import Literal, Any, TYPE_CHECKING
 import numpy as np
 from ._main import elements, fluid, fluid_system
 from .typing import NDFloat, FloatArray
-from .constants import p0, epsy
-from ._backend import iterate
+from .constants import p0, epsy, R
+from ._backend import find_root
 
 if TYPE_CHECKING:
     def minimize(*a: Any, **b: Any) -> dict[str, FloatArray]:
@@ -174,7 +174,7 @@ def equilibrium_eq(fs: fluid_system, element_composition: FloatArray,
         return np.minimum(logn + delta, species_max_log + 1), converged
 
     # Start values are the maximum possible amounts of the species
-    logn: FloatArray = iterate(newton_step, species_max_log, 30, np)
+    logn: FloatArray = find_root(lambda logn: residuals(logn)[0], newton_step, species_max_log, 30, np)
 
     n_eq: FloatArray = np.exp(logn) * el_max
     return n_eq
@@ -209,6 +209,195 @@ def equilibrium(f: fluid | elements, t: float | FloatArray, p: float | FloatArra
 
     composition = _equilibrium_solver(f.fs, f.array_elemental_composition, t, p)
     return fluid(composition, f.fs)
+
+
+def _t_range(fs: fluid_system) -> tuple[float, float]:
+    """Temperature range in Kelvin covered by the property tables of the fluid system"""
+    return float(fs._t_offset), float(fs._t_offset + fs._h_array.shape[0] - 1)
+
+
+def equilibrium_eq_hp(fs: fluid_system, element_composition: FloatArray, h: float | FloatArray,
+                      p: float | FloatArray, t_guess: float | FloatArray) -> tuple[FloatArray, FloatArray]:
+    """Calculate the equilibrium composition and temperature of a fluid at a given
+    enthalpy and pressure based on equilibrium equations
+
+    The equation system of equilibrium_eq is extended by the energy balance
+    and the logarithm of the temperature as additional unknown. All equilibria
+    of the batch are solved simultaneously by a vectorized Newton iteration.
+
+    Args:
+        fs: Fluid system
+        element_composition: Elemental composition with shape (..., n_elements)
+        h: Absolute enthalpy in J, broadcastable to the batch shape
+        p: Pressure in Pascal, broadcastable to the batch shape
+        t_guess: Start value for the temperature in Kelvin, broadcastable to the batch shape
+
+    Returns:
+        Tuple of the molar amounts of species with shape (..., n_species) and
+        the temperatures with shape (...), where ... is the broadcast shape of
+        element_composition[..., 0], h and p. Values are nan if the temperature
+        is outside of the temperature range of the fluid system.
+    """
+    np = fs.np
+    element_composition, h, p = _broadcast_inputs(fs, element_composition, h, p)
+    t_min, t_max = _t_range(fs)
+
+    a = fs.array_stoichiometric_coefficients  # (n_reactions, n_species)
+    species_elements = fs.array_species_elements  # (n_species, n_elements)
+    a_sum = np.sum(a, axis=1)
+
+    el_max = np.max(element_composition, axis=-1, keepdims=True)
+    element_norm = element_composition / el_max
+    element_norm_log = np.log(element_norm + epsy)
+    log_p = np.log(p / p0)
+
+    # Calculating the maximum possible amount for each species based on the elements
+    species_max = np.min((element_norm[..., None, :] + epsy) / (species_elements + epsy), axis=-1)
+    species_max_log = np.log(species_max + epsy)
+
+    # The enthalpy of a composition is only meaningful if it satisfies the elemental balance,
+    # therefore the start values are the isothermal equilibrium at the guessed temperature
+    t_start = np.clip(np.broadcast_to(fs._asarray(t_guess), h.shape), t_min, t_max)
+    logn_start = np.log(equilibrium_eq(fs, element_norm, t_start, p) + epsy)
+
+    # Energy balance is scaled by a constant RT to keep its derivative for T positive
+    rt_scale = R * t_start
+    h_norm = h / el_max[..., 0] / rt_scale
+
+    def residuals(x: FloatArray) -> tuple[FloatArray, FloatArray]:
+        logn = x[..., :-1]
+        t = np.exp(x[..., -1])
+        n: FloatArray = np.exp(logn)  # n is the molar amount normalized by el_max
+        n_sum = np.sum(n, axis=-1, keepdims=True)
+        species_h = fs.get_species_h(t)
+        h_rt = species_h / (R * t[..., None])
+
+        # Residuals from equilibrium equations with pressure corrected log equilibrium constants:
+        bp = -fs.get_species_g_rt(t) @ a.T - a_sum * log_p[..., None]
+        resid_eq = (logn - np.log(n_sum)) @ a.T - bp
+
+        # Jacobian for equilibrium equations: a @ (I - 1 * n / n_sum) and
+        # d(g/RT)/d(ln T) = -h/RT for the temperature
+        j_eq = np.concatenate([a - a_sum[:, None] * (n / n_sum)[..., None, :],
+                               -(h_rt @ a.T)[..., None]], axis=-1)
+
+        # Residuals from elemental balance:
+        el_sum_norm = n @ species_elements + epsy
+        resid_ab = np.log(el_sum_norm) - element_norm_log
+
+        # Jacobian for elemental balance (independent of temperature):
+        j_ab = species_elements.T * n[..., None, :] / el_sum_norm[..., :, None]
+        j_ab = np.concatenate([j_ab, np.zeros_like(j_ab[..., :1])], axis=-1)
+
+        # Residual from energy balance:
+        h_species = species_h / rt_scale[..., None]
+        resid_h = np.sum(n * h_species, axis=-1) - h_norm
+
+        # Jacobian for energy balance: n * h for the species and n * cp * T for ln T
+        cp_t = np.sum(n * fs.get_species_cp(t), axis=-1) * t / rt_scale
+        j_h = np.concatenate([n * h_species, cp_t[..., None]], axis=-1)[..., None, :]
+
+        return (np.concatenate([resid_eq, resid_ab, resid_h[..., None]], axis=-1),
+                np.concatenate([j_eq, j_ab, j_h], axis=-2))
+
+    # The residuals can not get smaller than the precision of the data type
+    tol = max(1e-10, 1e3 * float(np.finfo(species_max_log.dtype).eps))
+
+    def newton_step(x: FloatArray) -> tuple[FloatArray, Any]:
+        rF, J = residuals(x)
+
+        delta = np.linalg.solve(J, -rF[..., None])[..., 0]
+
+        # Iterate until all equilibria of the batch are converged
+        converged = np.all(np.linalg.norm(rF, axis=-1) < tol)
+
+        # The Newton step is damped to limit the temperature step to 20 %
+        delta = delta * np.minimum(1, 0.2 / (np.abs(delta[..., -1:]) + epsy))
+
+        # The temperature is limited to the range of the fluid system
+        logn = np.minimum(x[..., :-1] + delta[..., :-1], species_max_log + 1)
+        log_t = np.clip(x[..., -1] + delta[..., -1], np.log(t_min), np.log(t_max))
+        return np.concatenate([logn, log_t[..., None]], axis=-1), converged
+
+    x: FloatArray = find_root(lambda x: residuals(x)[0], newton_step,
+                              np.concatenate([logn_start, np.log(t_start)[..., None]], axis=-1), 60, np)
+
+    # The energy balance can not be satisfied if the temperature is out of range
+    valid = np.abs(residuals(x)[0][..., -1]) < max(1e-6, 10 * tol)
+
+    n_eq: FloatArray = np.where(valid[..., None], np.exp(x[..., :-1]) * el_max, np.nan)
+    t_eq: FloatArray = np.where(valid, np.exp(x[..., -1]), np.nan)
+    return n_eq, t_eq
+
+
+def _temperature_from_enthalpy(fs: fluid_system, composition: FloatArray, h: FloatArray,
+                               t_guess: float | FloatArray) -> FloatArray:
+    """Calculate the temperature of a fluid with fixed composition (..., n_species)
+    at a given absolute enthalpy (...)"""
+    np = fs.np
+    t_min, t_max = _t_range(fs)
+    t_start = np.clip(np.broadcast_to(fs._asarray(t_guess), h.shape), t_min, t_max)
+
+    # Energy balance is scaled by a constant RT to keep its derivative for T positive
+    rt_scale = R * t_start * np.sum(composition, axis=-1)
+
+    # The unknown log_t has a trailing axis of length 1 for find_root
+    def resid(log_t: FloatArray) -> FloatArray:
+        h_fluid = np.sum(composition * fs.get_species_h(np.exp(log_t[..., 0])), axis=-1)
+        return ((h_fluid - h) / rt_scale)[..., None]  # type: ignore[no-any-return]
+
+    # The residuals can not get smaller than the precision of the data type
+    tol = max(1e-10, 1e3 * float(np.finfo(t_start.dtype).eps))
+
+    def newton_step(log_t: FloatArray) -> tuple[FloatArray, Any]:
+        t = np.exp(log_t[..., 0])
+        r = resid(log_t)
+        dr = (np.sum(composition * fs.get_species_cp(t), axis=-1) * t / rt_scale)[..., None]
+        converged = np.all(np.abs(r) < tol)
+        log_t = np.clip(log_t - np.clip(r / dr, -0.2, 0.2), np.log(t_min), np.log(t_max))
+        return log_t, converged
+
+    log_t: FloatArray = find_root(resid, newton_step, np.log(t_start)[..., None], 60, np)
+    return np.where(np.abs(resid(log_t)[..., 0]) < max(1e-6, 10 * tol), np.exp(log_t[..., 0]), np.nan)  # type: ignore[no-any-return]
+
+
+def equilibrium_hp(f: fluid | elements, h: float | FloatArray, p: float | FloatArray = 1e5,
+                   t_guess: float | FloatArray = 1000.0) -> tuple[fluid, FloatArray]:
+    """Calculate the isobaric equilibrium composition and temperature of a fluid
+    at a given absolute enthalpy and pressure (e.g. for adiabatic reactions)
+
+    Enthalpies are referenced like in fluid.get_H (including enthalpy of formation).
+    The enthalpy of a fluid fl at temperature t is therefore fl.get_H(t). Mixing
+    streams, adding heat or calculating the adiabatic flame temperature of a fluid
+    are expressed by the enthalpy argument:
+
+        >>> fl_out, t_out = gp.equilibrium_hp(fl1 + fl2, fl1.get_H(t1) + fl2.get_H(t2) + q)
+
+    The shapes of f, h and p are broadcast against each other, so multiple
+    equilibria are solved in parallel. Independent of the solver selected by
+    set_solver this function uses the "system of equations" solver.
+
+    Args:
+        f: Fluid or elements object
+        h: Absolute enthalpy in J
+        p: Pressure in Pascal
+        t_guess: Start value of the temperature iteration in Kelvin
+
+    Returns:
+        Tuple of a new fluid object with the equilibrium composition and the
+        equilibrium temperatures in Kelvin. Composition and temperature are nan
+        if the temperature is outside of the temperature range of the fluid
+        system (t_min and t_max of fluid_system).
+    """
+    assert isinstance(f, (fluid, elements)), 'Argument f must be a fluid or elements'
+    fs = f.fs
+    if fs.array_stoichiometric_coefficients.shape[0]:
+        composition, t = equilibrium_eq_hp(fs, f.array_elemental_composition, h, p, t_guess)
+        return fluid(composition, fs), t
+
+    # No reactions possible, the composition is fixed
+    composition, h, _ = _broadcast_inputs(fs, equilibrium(f, t_guess).array_composition, h, p)
+    return fluid(composition, fs), _temperature_from_enthalpy(fs, composition, h, t_guess)
 
 
 _equilibrium_solver = equilibrium_eq
