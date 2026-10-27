@@ -178,6 +178,12 @@ class species_system:
             for prop_array, prop in zip([self._cp_array, self._h_array, self._s_array, self._g_rt_array], properties):
                 prop_array[:, i] = np.nan_to_num(prop, nan=self._out_of_range_value)
 
+        # Coefficients for the cubic interpolation of h, s and g/RT based on their temperature derivatives
+        t_column = temperature_base_points[:, None]
+        self._h_coefficients = cubic_coefficients(self._h_array, self._cp_array)
+        self._s_coefficients = cubic_coefficients(self._s_array, self._cp_array / t_column)
+        self._g_rt_coefficients = cubic_coefficients(self._g_rt_array, -self._h_array / (R * t_column ** 2))
+
         self.elements: list[str] = sorted(list(set(k for ac in element_compositions for k in ac.keys())))
         self.array_species_elements: FloatArray = np.array([[ec[el] if el in ec else 0.0 for el in self.elements] for ec in element_compositions])
 
@@ -185,7 +191,8 @@ class species_system:
         self.array_molar_mass: FloatArray = np.sum(self.array_atomic_mass * self.array_species_elements, axis=-1)  # kg/mol
 
         if self.np is not np:
-            for name in ['_cp_array', '_h_array', '_s_array', '_g_rt_array', 'array_species_elements',
+            for name in ['_cp_array', '_h_array', '_s_array', '_g_rt_array', '_h_coefficients',
+                         '_s_coefficients', '_g_rt_coefficients', 'array_species_elements',
                          'array_atomic_mass', 'array_molar_mass']:
                 setattr(self, name, self._asarray(getattr(self, name)))
 
@@ -203,7 +210,7 @@ class species_system:
         Returns:
             Array with the enthalpies of each specie in J/mol
         """
-        return lookup(self._h_array, self._asarray(t), self._t_offset, self.np)
+        return lookup_cubic(self._h_coefficients, self._asarray(t), self._t_offset, self.np)
 
     def get_species_s(self, t: float | FloatArray) -> FloatArray:
         """Get the molar entropies for all species in the fluid system
@@ -214,7 +221,7 @@ class species_system:
         Returns:
             Array with the entropies of each specie in J/mol/K
         """
-        return lookup(self._s_array, self._asarray(t), self._t_offset, self.np)
+        return lookup_cubic(self._s_coefficients, self._asarray(t), self._t_offset, self.np)
 
     def get_species_cp(self, t: float | FloatArray) -> FloatArray:
         """Get the isobaric molar heat capacity for all species in the fluid system
@@ -240,7 +247,7 @@ class species_system:
         Returns:
             Array of gibbs free energy divided by RT (dimensionless)
         """
-        return lookup(self._g_rt_array, self._asarray(t), self._t_offset, self.np)
+        return lookup_cubic(self._g_rt_coefficients, self._asarray(t), self._t_offset, self.np)
 
     def get_species_references(self) -> str:
         """Get a string with the references for all fluids of the fluid system
@@ -878,6 +885,56 @@ def lookup(prop_array: FloatArray,
 
     ti1 = t_lim.astype(int)
     return f * prop_array[ti1 + 1, :] + (1 - f) * prop_array[ti1, :]  # type: ignore[no-any-return]
+
+
+def cubic_coefficients(prop_array: FloatArray, slope_array: FloatArray) -> FloatArray:
+    """Calculate the polynomial coefficients for the cubic Hermite interpolation
+    of a property tabulated at 1 K intervals
+
+    The interpolated values have continuous temperature derivatives that match
+    slope_array at the supporting points. An additional linear interval at each
+    end of the table extrapolates the values with the slope at the end of the table.
+
+    Args:
+        prop_array: Array of the temperature depended property with
+            supporting points at 1 K intervals, shape (n, n_species)
+        slope_array: Array of the temperature derivatives of the property
+
+    Returns:
+        Array of the coefficients with shape (n + 1, 4, n_species). Interval i
+        covers the temperature range from supporting point i - 1 to i.
+    """
+    y0, y1 = prop_array[:-1], prop_array[1:]
+    d0, d1 = slope_array[:-1], slope_array[1:]
+    zero = np.zeros_like(prop_array[:1])
+    return np.stack([np.concatenate([prop_array[:1] - slope_array[:1], y0, prop_array[-1:]]),
+                     np.concatenate([slope_array[:1], d0, slope_array[-1:]]),
+                     np.concatenate([zero, 3 * (y1 - y0) - 2 * d0 - d1, zero]),
+                     np.concatenate([zero, 2 * (y0 - y1) + d0 + d1, zero])], axis=1)
+
+
+def lookup_cubic(coefficients: FloatArray,
+                 temperature: FloatArray | float,
+                 t_offset: float,
+                 np: Any = np) -> FloatArray:
+    """Cubic interpolation of values with coefficients from cubic_coefficients
+
+    Args:
+        coefficients: Array of the polynomial coefficients of the property
+        temperature: Absolute temperature(s) in Kelvin. Must
+            be broadcastable to the property array.
+        t_offset: Temperature of the first supporting point in Kelvin
+        np: Array namespace of coefficients
+
+    Returns:
+        Interpolates values based on given temperature
+    """
+    t = np.asarray(temperature) - t_offset
+    i = np.minimum(np.maximum(np.floor(t) + 1, 0), coefficients.shape[0] - 1).astype(int)
+    f = np.expand_dims(t + 1 - i, axis=-1)
+
+    c = coefficients[i]
+    return c[..., 0, :] + f * (c[..., 1, :] + f * (c[..., 2, :] + f * c[..., 3, :]))  # type: ignore[no-any-return]
 
 
 def reorder_array(arr: FloatArray, old_index: list[str], new_index: list[str], np: Any = np) -> FloatArray:

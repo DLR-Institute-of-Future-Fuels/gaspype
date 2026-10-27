@@ -317,3 +317,10 @@ def test_activity_species_system():
 
     with pytest.raises(AssertionError):
         gp.activity(ref, t, p, carbon)
+
+
+def test_smooth_temperature_derivatives():
+    # Second derivatives are available due to the cubic interpolation
+    d2h = jax.hessian(lambda t: fs_jax.get_species_h(t))(1200.3)
+    dcp = (fs.get_species_cp(1200.31) - fs.get_species_cp(1200.29)) / 0.02
+    assert np.asarray(d2h) == pytest.approx(dcp, rel=1e-3)
