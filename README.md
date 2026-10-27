@@ -380,7 +380,7 @@ pytest
 
 ## Limitations
 - **Ideal gas assumption**: Gaspype treats species as ideal gases, limiting applicability to moderate pressures or high-temperature applications.
-- **Isobaric equilibrium**: Currently, only isobaric (constant pressure) equilibrium calculations are implemented.
+- **Isobaric equilibrium**: Currently, only isobaric (constant pressure) equilibrium calculations are implemented, either at a given temperature (```equilibrium```) or at a given enthalpy (```equilibrium_hp```).
 
 ## Quality Assurance
 Gaspype's calculations are validated against reference data from:
